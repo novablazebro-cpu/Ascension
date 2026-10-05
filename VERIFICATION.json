@@ -1,0 +1,16 @@
+{
+  "version": "1.5.0",
+  "automated_tests": {
+    "tests": 363,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": 37,
+  "native_paper26": "PASS",
+  "live_two_player_ipad_tested": false,
+  "jar_sha256": {
+    "Ascension-1.5.0.jar": "8954a2b18dc87ccbc4a53197fe23bedd40140acf05afa258970aff5416b298b9",
+    "Ascension-1.5.0-paper26.jar": "dae53628bf290ba00db0de44a6f6dba578182c3a8a62e87e3c51a8438f30b620"
+  }
+}
