@@ -1,6 +1,7 @@
 package com.leadsystems.minecraft.ascension.gui;
 
 import com.leadsystems.minecraft.ascension.scheduler.MainThread;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -40,6 +41,7 @@ public final class MenuListener implements Listener {
         }
         Menu.Button button = holder.button(raw);
         if (button != null) {
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.2f);
             long token = holder.token();
             main.later(1, () -> {
                 if (player.isOnline() && player.getOpenInventory().getTopInventory().getHolder(false) == holder

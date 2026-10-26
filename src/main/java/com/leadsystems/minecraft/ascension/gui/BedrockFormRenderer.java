@@ -2,7 +2,9 @@ package com.leadsystems.minecraft.ascension.gui;
 
 import com.leadsystems.minecraft.ascension.integration.PlatformDetector;
 import com.leadsystems.minecraft.ascension.scheduler.MainThread;
+import com.leadsystems.minecraft.ascension.text.Contrast;
 import com.leadsystems.minecraft.ascension.text.Messages;
+import com.leadsystems.minecraft.ascension.text.ProgressBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.geysermc.cumulus.form.Form;
@@ -76,12 +78,15 @@ public final class BedrockFormRenderer {
         return buttonText(button, System.currentTimeMillis());
     }
 
+    /** Buttons are light gray: only colors readable there are kept (gray or pale labels go plain). */
     static String buttonText(Menu.Button button, long now) {
-        StringBuilder text = new StringBuilder(formatted(button.label()));
+        StringBuilder text = new StringBuilder(Contrast.bedrockButton(button.label()));
         for (int i = 0; i < button.lore().size(); i++) {
             Component line = button.countdowns().containsKey(i)
                     ? button.countdowns().get(i).at(now) : button.lore().get(i);
-            text.append("\n").append(formatted(line));
+            // Legacy colors run on across line breaks; reset only when an earlier line set one.
+            text.append(text.indexOf("§") >= 0 ? "\n§r" : "\n")
+                    .append(Contrast.bedrockButton(ProgressBar.textOnly(line)));
         }
         return text.toString();
     }
@@ -102,8 +107,8 @@ public final class BedrockFormRenderer {
         return sb.toString().trim();
     }
 
-    /** Forms show plain text without Java or Bedrock formatting codes. */
+    /** Form titles and body text stay plain so the client always picks a readable default. */
     static String formatted(Component component) {
-        return Messages.plain(component);
+        return Messages.plain(ProgressBar.textOnly(component));
     }
 }

@@ -21,6 +21,7 @@ import com.leadsystems.minecraft.ascension.service.TitleService;
 import com.leadsystems.minecraft.ascension.session.PlayerSession;
 import com.leadsystems.minecraft.ascension.session.SessionManager;
 import com.leadsystems.minecraft.ascension.text.Messages;
+import com.leadsystems.minecraft.ascension.text.ProgressBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -140,11 +141,6 @@ public final class MenuService {
                 return;
             }
         }
-        if ("help".equals(screen.id())) {
-            for (Component line : screen.body()) {
-                player.sendMessage(Messages.withoutColor(line));
-            }
-        }
         java.render(player, screen, token);
     }
 
@@ -240,10 +236,11 @@ public final class MenuService {
                 case UNAVAILABLE -> "locked";
             };
             buttons.add(new Menu.Button(titleName(title),
-                    List.of(Component.text(state, state.equals("equipped") ? NamedTextColor.GREEN : NamedTextColor.GRAY),
+                    List.of(Component.text(state, stateColor(state)),
                             Component.text("Level " + levelResolver.level(s, title.id()) + " · "
-                                    + levelResolver.xp(s, title.id()) + " title XP", NamedTextColor.AQUA)),
-                    Material.NAME_TAG, Menu.Action.OPEN, "title:" + title.id(), false));
+                                    + levelResolver.xp(s, title.id()) + " title XP", NamedTextColor.AQUA),
+                            xpBar(s, title.id())),
+                    titleIcon(titleState, state), Menu.Action.OPEN, "title:" + title.id(), false));
         }
         if (range.previous()) {
             buttons.add(new Menu.Button(msg("menu.previous"), List.of(), Material.ARROW,
@@ -275,6 +272,7 @@ public final class MenuService {
                 .append(Component.text(level + " / 3", NamedTextColor.AQUA)));
         body.add(Component.text(targetXp == 0 ? "Maximum level · " + levelResolver.xp(s, titleId) + " title XP"
                 : "Title XP: " + levelResolver.xp(s, titleId) + " / " + targetXp, NamedTextColor.AQUA));
+        body.add(xpBar(s, titleId));
         body.add(Component.text("Current Ability: " + title.abilityName(), NamedTextColor.GOLD));
         body.add(Component.text(levelResolver.levelSummary(s, titleId), NamedTextColor.WHITE));
         body.add(Component.text(TitleAbilityRegistry.isManual(titleId)
@@ -438,6 +436,7 @@ public final class MenuService {
                 List<Component> lore = new ArrayList<>();
                 lore.add(messages.get("menu.active-progress", Messages.ph("current", st.current()),
                         Messages.ph("required", o.amount())));
+                lore.add(ProgressBar.of(st.current(), o.amount()));
                 if (o.unique() > 0) {
                     lore.add(messages.get("menu.active-progress-unique", Messages.ph("marks", st.marks()),
                             Messages.ph("unique", o.unique())));
@@ -486,27 +485,30 @@ public final class MenuService {
 
     private Menu.Screen stats(PlayerSession s) {
         Map<String, Long> stats = s.statsView();
-        List<Component> body = new ArrayList<>();
-        body.add(stat("menu.stats-quests", s.rankIndex() + (s.mastery() ? 1 : 0)));
-        body.add(stat("menu.stats-levels", stats.getOrDefault("levels", 0L)));
-        body.add(stat("menu.stats-hostile", stats.getOrDefault("kills.hostile", 0L)));
-        body.add(stat("menu.stats-kills", stats.getOrDefault("kills", 0L)));
-        body.add(stat("menu.stats-mined", stats.getOrDefault("mined", 0L)));
-        body.add(stat("menu.stats-smelted", stats.getOrDefault("smelted", 0L)));
-        return new Menu.Screen("stats", msg("menu.stats-title"), body, List.of(), List.of(back()), false);
+        List<Menu.Entry> entries = List.of(
+                stat("menu.stats-quests", s.rankIndex() + (s.mastery() ? 1 : 0), Material.WRITABLE_BOOK),
+                stat("menu.stats-levels", stats.getOrDefault("levels", 0L), Material.EXPERIENCE_BOTTLE),
+                stat("menu.stats-hostile", stats.getOrDefault("kills.hostile", 0L), Material.ZOMBIE_HEAD),
+                stat("menu.stats-kills", stats.getOrDefault("kills", 0L), Material.DIAMOND_SWORD),
+                stat("menu.stats-mined", stats.getOrDefault("mined", 0L), Material.IRON_PICKAXE),
+                stat("menu.stats-smelted", stats.getOrDefault("smelted", 0L), Material.FURNACE));
+        return new Menu.Screen("stats", msg("menu.stats-title"), List.of(), entries, List.of(back()), false);
     }
 
-    private Component stat(String nameKey, long value) {
-        return messages.get("menu.stats-line", Messages.ph("name", Messages.plain(msg(nameKey))),
-                Messages.ph("value", value));
+    private Menu.Entry stat(String nameKey, long value, Material icon) {
+        return new Menu.Entry(messages.get("menu.stats-line", Messages.ph("name", Messages.plain(msg(nameKey))),
+                Messages.ph("value", value)), List.of(), icon);
     }
 
+    /** One book whose tooltip reads as a page, instead of seven separate lines to hover. */
     private Menu.Screen help() {
-        List<Component> body = new ArrayList<>();
+        List<Component> steps = new ArrayList<>();
         for (int i = 1; i <= 7; i++) {
-            body.add(msg("menu.help-" + i));
+            steps.add(msg("menu.help-" + i));
         }
-        return new Menu.Screen("help", msg("menu.help-title"), body, List.of(), List.of(back()), false);
+        return new Menu.Screen("help", msg("menu.help-title"), List.of(),
+                List.of(new Menu.Entry(msg("menu.help-title"), steps, Material.KNOWLEDGE_BOOK)),
+                List.of(back()), false);
     }
 
     private Menu.Screen later(PlayerSession s, String titleKey) {
@@ -562,6 +564,27 @@ public final class MenuService {
 
     private Component msg(String key) {
         return messages.get(key);
+    }
+
+    private Component xpBar(PlayerSession s, String titleId) {
+        long target = levelResolver.nextLevelXp(s, titleId);
+        return target == 0 ? ProgressBar.of(1, 1) : ProgressBar.of(levelResolver.xp(s, titleId), target);
+    }
+
+    private static NamedTextColor stateColor(String state) {
+        return switch (state) {
+            case "equipped", "available" -> NamedTextColor.GREEN;
+            case "wearable" -> NamedTextColor.AQUA;
+            case "claiming" -> NamedTextColor.YELLOW;
+            case "claimed" -> NamedTextColor.RED;
+            default -> NamedTextColor.GRAY;
+        };
+    }
+
+    /** Equipped titles glow as a nether star, claimable ones as experience, others keep the name tag. */
+    private static Material titleIcon(TitleState titleState, String state) {
+        if (state.equals("equipped")) return Material.NETHER_STAR;
+        return titleState == TitleState.ELIGIBLE ? Material.EXPERIENCE_BOTTLE : Material.NAME_TAG;
     }
 
     private static Material iconFor(ObjectiveDefinition o) {

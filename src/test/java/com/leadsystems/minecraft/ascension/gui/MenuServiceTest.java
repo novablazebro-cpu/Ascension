@@ -121,13 +121,15 @@ class MenuServiceTest {
                     Menu.Action.OPEN, "main", true)), false);
             new JavaMenuRenderer().render(player, help, 1);
             var inventory = player.getOpenInventory().getTopInventory();
-            assertEquals(Material.PAPER, inventory.getItem(9).getType());
-            assertEquals(Material.PAPER, inventory.getItem(10).getType());
+            // Two body lines sit centered with a gap on the first content row of the framed layout.
+            assertEquals(Material.PAPER, inventory.getItem(12).getType());
+            assertEquals(Material.PAPER, inventory.getItem(14).getType());
             assertEquals("Accept a quest", com.leadsystems.minecraft.ascension.text.Messages.plain(
-                    inventory.getItem(9).getItemMeta().displayName()));
+                    inventory.getItem(12).getItemMeta().displayName()));
             assertEquals("Use the ability stick", com.leadsystems.minecraft.ascension.text.Messages.plain(
-                    inventory.getItem(10).getItemMeta().displayName()));
+                    inventory.getItem(14).getItemMeta().displayName()));
             assertEquals(Material.ARROW, inventory.getItem(49).getType());
+            assertEquals(Material.BLACK_STAINED_GLASS_PANE, inventory.getItem(9).getType(), "framed side");
 
             Menu.Screen confirm = new Menu.Screen("confirm", Component.text("Accept?"),
                     List.of(Component.text("Only new progress counts")), List.of(), List.of(
@@ -138,7 +140,7 @@ class MenuServiceTest {
             new JavaMenuRenderer().render(player, confirm, 2);
             inventory = player.getOpenInventory().getTopInventory();
             assertEquals("Only new progress counts", com.leadsystems.minecraft.ascension.text.Messages.plain(
-                    inventory.getItem(9).getItemMeta().displayName()));
+                    inventory.getItem(13).getItemMeta().displayName()));
             assertEquals(Material.LIME_CONCRETE, inventory.getItem(21).getType());
             assertEquals(Material.RED_CONCRETE, inventory.getItem(23).getType());
         } finally {
@@ -161,9 +163,16 @@ class MenuServiceTest {
             new JavaMenuRenderer().render(player, new Menu.Screen("titles", Component.text("Titles"),
                     List.of(), List.of(), buttons, false), 1);
             var inventory = player.getOpenInventory().getTopInventory();
-            for (int slot = 9; slot < 39; slot++) {
+            // 30 buttons exceed the 28-slot frame, so the full width is used: 27 in rows 1-3, 3 centered in row 4.
+            for (int slot = 9; slot < 36; slot++) {
                 assertEquals(Material.NAME_TAG, inventory.getItem(slot).getType(), "missing title at slot " + slot);
             }
+            for (int slot : new int[] {38, 40, 42}) {
+                assertEquals(Material.NAME_TAG, inventory.getItem(slot).getType(), "missing title at slot " + slot);
+            }
+            long titles = java.util.Arrays.stream(inventory.getContents())
+                    .filter(item -> item != null && item.getType() == Material.NAME_TAG).count();
+            assertEquals(30, titles);
             assertEquals(Material.ARROW, inventory.getItem(49).getType());
         } finally {
             MockBukkit.unmock();

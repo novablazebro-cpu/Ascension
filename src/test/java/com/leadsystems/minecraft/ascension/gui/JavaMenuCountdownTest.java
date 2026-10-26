@@ -18,7 +18,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class JavaMenuCountdownTest {
     ServerMock server;
     JavaMenuRenderer renderer = new JavaMenuRenderer();
-    @BeforeEach void setup() { server = MockBukkit.mock(); }
+    int body;
+    int product;
+    @BeforeEach void setup() {
+        server = MockBukkit.mock();
+        var layout = JavaMenuRenderer.layout(shop(0, "layout"));
+        body = layout.body()[0];
+        product = layout.items()[0];
+    }
     @AfterEach void close() { MockBukkit.unmock(); }
 
     Menu.Screen shop(long deadline, String product) {
@@ -40,19 +47,19 @@ class JavaMenuCountdownTest {
         AtomicInteger refreshes = new AtomicInteger();
         renderer.tick(player, 10, refreshes::incrementAndGet, now + 19_000);
         assertSame(inventory, player.getOpenInventory().getTopInventory());
-        assertEquals("Restock: 00:01", Messages.plain(inventory.getItem(9).getItemMeta().displayName()));
-        assertEquals("Restock: 00:01", Messages.plain(inventory.getItem(10).getItemMeta().lore().getFirst()));
+        assertEquals("Restock: 00:01", Messages.plain(inventory.getItem(body).getItemMeta().displayName()));
+        assertEquals("Restock: 00:01", Messages.plain(inventory.getItem(product).getItemMeta().lore().getFirst()));
         renderer.tick(player, 10, refreshes::incrementAndGet, now + 20_000);
         renderer.tick(player, 10, refreshes::incrementAndGet, now + 21_000);
         assertEquals(1, refreshes.get());
-        assertEquals("Restock: Restocking…", Messages.plain(inventory.getItem(9).getItemMeta().displayName()));
+        assertEquals("Restock: Restocking…", Messages.plain(inventory.getItem(body).getItemMeta().displayName()));
         assertTrue(renderer.refresh(player, 10, shop(now + 120_000, "new"), 11));
         assertSame(inventory, player.getOpenInventory().getTopInventory());
         var holder = (MenuHolder) inventory.getHolder();
-        assertEquals(11, holder.token()); assertEquals("market_stock:new", holder.button(10).arg());
+        assertEquals(11, holder.token()); assertEquals("market_stock:new", holder.button(product).arg());
         assertFalse(renderer.owns(player, 10)); assertTrue(renderer.owns(player, 11));
         assertFalse(renderer.refresh(player, 10, shop(now + 120_000, "stale"), 12));
-        assertEquals("market_stock:new", holder.button(10).arg());
+        assertEquals("market_stock:new", holder.button(product).arg());
     }
 
     @Test void closingOrChangingMenuRejectsOldRefreshAndNeverTouchesConfirmation() {
@@ -104,13 +111,13 @@ class JavaMenuCountdownTest {
         long now = System.currentTimeMillis();
         renderer.render(player, shop(now + 20_000, "old"), 1);
         var inventory = player.getOpenInventory().getTopInventory();
-        String original = Messages.plain(inventory.getItem(9).getItemMeta().displayName());
+        String original = Messages.plain(inventory.getItem(body).getItemMeta().displayName());
         renderer.tick(player, 2, () -> fail("wrong token"), now + 19_000);
-        assertEquals(original, Messages.plain(inventory.getItem(9).getItemMeta().displayName()));
+        assertEquals(original, Messages.plain(inventory.getItem(body).getItemMeta().displayName()));
         other.openInventory(inventory);
         assertFalse(renderer.owns(other, 1));
         renderer.tick(other, 1, () -> fail("wrong viewer"), now + 25_000);
-        assertEquals(original, Messages.plain(inventory.getItem(9).getItemMeta().displayName()));
+        assertEquals(original, Messages.plain(inventory.getItem(body).getItemMeta().displayName()));
     }
 
     @Test void lostRefreshCallbackTimesOutAndRetryDoesNotHammerStorage() {

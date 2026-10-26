@@ -3,6 +3,7 @@ package com.leadsystems.minecraft.ascension.text;
 import com.leadsystems.minecraft.ascension.domain.rank.RankStage;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -16,7 +17,8 @@ import java.util.Map;
 
 /**
  * Renders messages.yml (MiniMessage). Placeholder values are inserted as unparsed text, so player
- * names can never inject formatting or click events.
+ * names can never inject formatting or click events. Configured colors are kept; each renderer makes
+ * them readable on its own surface through {@link Contrast}.
  */
 public final class Messages {
 
@@ -34,27 +36,27 @@ public final class Messages {
         if (template == null) {
             return Component.text("[missing message: " + key + "]", NamedTextColor.WHITE);
         }
-        return neutral(MM.deserialize(template, placeholders));
+        return MM.deserialize(template, placeholders);
     }
 
     /** Sends a prefixed chat message. */
     public void send(CommandSender to, String key, TagResolver... placeholders) {
-        to.sendMessage(prefix().append(get(key, placeholders)));
+        to.sendMessage(Contrast.on(Contrast.Surface.CHAT, prefix().append(get(key, placeholders))));
     }
 
     /** Shows a message on the action bar. */
     public void actionBar(Player to, String key, TagResolver... placeholders) {
-        to.sendActionBar(get(key, placeholders));
+        to.sendActionBar(Contrast.on(Contrast.Surface.CHAT, get(key, placeholders)));
     }
 
     public Component prefix() {
         String p = templates.get("prefix");
-        return p == null ? Component.empty() : neutral(MM.deserialize(p));
+        return p == null ? Component.empty() : MM.deserialize(p);
     }
 
     /** Parses an arbitrary MiniMessage string (menu labels). */
     public static Component parse(String miniMessage, TagResolver... placeholders) {
-        return neutral(MM.deserialize(miniMessage, placeholders));
+        return MM.deserialize(miniMessage, placeholders);
     }
 
     /** A plain-text placeholder. */
@@ -67,9 +69,10 @@ public final class Messages {
         return Placeholder.component(name, value);
     }
 
-    /** A rank stage name in the plugin's neutral text style. */
+    /** A rank stage name in its configured ranks.yml color (white when unset or invalid). */
     public static Component rank(RankStage stage) {
-        return Component.text(stage.name(), NamedTextColor.WHITE);
+        TextColor color = stage.color() == null ? null : TextColor.fromHexString(stage.color());
+        return Component.text(stage.name(), color == null ? NamedTextColor.WHITE : color);
     }
 
     /** Legacy section-sign string, for Bedrock forms (Cumulus takes plain strings). */
@@ -91,8 +94,8 @@ public final class Messages {
         return withoutColor(component).color(NamedTextColor.WHITE);
     }
 
-    /** Item names/lore are italic by default; menus want them upright. */
+    /** Item names/lore are italic by default; menus want them upright. Colors are kept. */
     public static Component upright(Component component) {
-        return neutral(component).decoration(TextDecoration.ITALIC, false);
+        return component.decoration(TextDecoration.ITALIC, false);
     }
 }

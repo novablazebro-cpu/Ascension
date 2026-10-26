@@ -11,11 +11,14 @@ import com.leadsystems.minecraft.ascension.scheduler.MainThread;
 import com.leadsystems.minecraft.ascension.session.PlayerSession;
 import com.leadsystems.minecraft.ascension.session.SessionHook;
 import com.leadsystems.minecraft.ascension.session.SessionManager;
+import com.leadsystems.minecraft.ascension.text.Contrast;
 import com.leadsystems.minecraft.ascension.text.Messages;
+import com.leadsystems.minecraft.ascension.text.Wrap;
 import io.papermc.paper.event.player.PlayerInventorySlotChangeEvent;
 import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -214,19 +217,18 @@ public final class TitleAbilityItems implements Listener, SessionHook {
     private ItemStack create(PlayerSession session, TitleDefinition definition) {
         ItemStack item = new ItemStack(relicMaterial());
         item.editMeta(meta -> {
-            meta.displayName(Component.text(config.get().settings().activationItemDisplayName(), NamedTextColor.WHITE)
-                    .decoration(TextDecoration.ITALIC, false));
+            TextColor titleColor = TextColor.fromHexString(definition.color());
+            meta.displayName(tooltip(Component.text(config.get().settings().activationItemDisplayName(),
+                    titleColor == null ? NamedTextColor.WHITE : titleColor)));
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.text(definition.name() + " · Level " + levelResolver.level(session, definition.id()), NamedTextColor.WHITE)
-                    .decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text(definition.abilityName(), NamedTextColor.WHITE)
-                    .decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text(definition.abilityDescription(), NamedTextColor.WHITE)
-                    .decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text("Right-click to activate.", NamedTextColor.WHITE)
-                    .decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text("Owner-bound and cannot be stored or dropped.", NamedTextColor.WHITE)
-                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(tooltip(Component.text(definition.name() + " · Level " + levelResolver.level(session, definition.id()),
+                    NamedTextColor.AQUA)));
+            lore.add(tooltip(Component.text(definition.abilityName(), NamedTextColor.GOLD)));
+            for (Component line : Wrap.lines(Component.text(definition.abilityDescription(), NamedTextColor.GRAY), 42)) {
+                lore.add(tooltip(line));
+            }
+            lore.add(tooltip(Component.text("Right-click to activate.", NamedTextColor.GREEN)));
+            lore.add(tooltip(Component.text("Owner-bound and cannot be stored or dropped.", NamedTextColor.DARK_GRAY)));
             meta.lore(lore);
             meta.addItemFlags(ItemFlag.values());
             meta.setEnchantmentGlintOverride(config.get().settings().activationItemGlint());
@@ -237,6 +239,10 @@ public final class TitleAbilityItems implements Listener, SessionHook {
             pdc.set(title, PersistentDataType.STRING, definition.id());
         });
         return item;
+    }
+
+    private static Component tooltip(Component line) {
+        return Contrast.on(Contrast.Surface.TOOLTIP, line).decoration(TextDecoration.ITALIC, false);
     }
 
     private Material relicMaterial() {

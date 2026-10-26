@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Verifies the owner-bound Ascension Relic lifecycle through the real plugin runtime. */
@@ -146,13 +147,19 @@ class TitleAbilityItemsTest {
     }
 
     @Test
-    void relicNameAndEveryLoreLineUseNeutralWhite() {
+    void relicNameAndEveryLoreLineStayReadableOnTheTooltip() {
         PlayerMock player = join("PlainRelic");
         equipManualTitle(player);
         var meta = relic(player).getItemMeta();
-        assertEquals(net.kyori.adventure.text.format.NamedTextColor.WHITE, meta.displayName().color());
-        assertTrue(meta.lore().stream().allMatch(line ->
-                net.kyori.adventure.text.format.NamedTextColor.WHITE.equals(line.color())));
+        java.util.List<net.kyori.adventure.text.Component> lines = new java.util.ArrayList<>(meta.lore());
+        lines.add(meta.displayName());
+        for (var line : lines) {
+            assertNotNull(line.color(), "every relic line has an explicit color");
+            assertTrue(com.leadsystems.minecraft.ascension.text.Contrast.ratio(line.color().value(), 0x100010) >= 4.5,
+                    "unreadable relic line: " + com.leadsystems.minecraft.ascension.text.Messages.plain(line));
+            assertEquals(net.kyori.adventure.text.format.TextDecoration.State.FALSE,
+                    line.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC));
+        }
     }
 
     @Test
