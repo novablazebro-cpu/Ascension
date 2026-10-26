@@ -173,7 +173,7 @@ class ChronicleIntegrationTest {
         listener.activateFromItem(caster, session);
         settle();
         server.getPluginManager().callEvent(new PlayerDeathEvent(player, Mockito.mock(DamageSource.class),
-                new ArrayList<>(), 0, Component.empty()));
+                new ArrayList<>(), 0, Component.empty(), true));
         assertFalse(session.cooldowns().isReady(key, System.currentTimeMillis()));
         // Recreate the session through the real save/load lifecycle, as on reconnect or restart.
         plugin.sessions().quit(player);
@@ -420,6 +420,7 @@ class ChronicleIntegrationTest {
     }
 
     @Test
+    @SuppressWarnings("removal") // Paper exposes only internal EntityDamageEvent constructors for synthetic events.
     void damageAndLowHealthRankTriggersApplyTheirEffects() {
         PlayerMock player = join("ReactiveRankOwner");
         assertTrue(player.performCommand("rank test bronze 3"));
@@ -890,7 +891,7 @@ class ChronicleIntegrationTest {
         PlayerMock p = join("Alex");
         ItemStack book = book(p);
         List<ItemStack> drops = new ArrayList<>(List.of(book.clone(), new ItemStack(Material.DIRT)));
-        PlayerDeathEvent event = new PlayerDeathEvent(p, Mockito.mock(DamageSource.class), drops, 0, Component.empty());
+        PlayerDeathEvent event = new PlayerDeathEvent(p, Mockito.mock(DamageSource.class), drops, 0, Component.empty(), true);
         server.getPluginManager().callEvent(event);
         assertEquals(1, event.getDrops().size(), "only the dirt drops");
         assertEquals(Material.DIRT, event.getDrops().get(0).getType());

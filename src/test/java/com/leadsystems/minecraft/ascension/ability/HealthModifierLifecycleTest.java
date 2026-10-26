@@ -82,6 +82,7 @@ class HealthModifierLifecycleTest {
             RankStage stage = new RankStage(0, "platinum_3", "Platinum III", "platinum", 3,
                     "#ffffff", "platinum_3");
             when(plugin.getName()).thenReturn("Ascension");
+            when(plugin.namespace()).thenReturn("ascension"); // Paper 26.3 NamespacedKey(Plugin, String) reads namespace()
             when(player.getAttribute(Attribute.MAX_HEALTH)).thenReturn(max);
             when(max.getValue()).thenReturn(20.0);
             when(session.loaded()).thenReturn(true);
