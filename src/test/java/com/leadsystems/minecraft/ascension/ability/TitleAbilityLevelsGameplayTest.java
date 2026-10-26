@@ -80,7 +80,7 @@ class TitleAbilityLevelsGameplayTest {
     @BeforeEach void setup() {
         MockBukkit.mock();
         world = mock(World.class);
-        when(world.getPVP()).thenReturn(true);
+        when(world.getGameRuleValue(org.bukkit.GameRules.PVP)).thenReturn(true);
         when(world.getPlayers()).thenReturn(players);
         owner = player("Owner", 0, true);
         players.add(owner);
@@ -230,7 +230,7 @@ class TitleAbilityLevelsGameplayTest {
         players.add(p);
         listener.activateFromItem(owner,session);
         assertTrue(cooldowns.isReady("title.stormbringer.heavens_judgment",System.currentTimeMillis()));
-        when(world.getPVP()).thenReturn(false);
+        when(world.getGameRuleValue(org.bukkit.GameRules.PVP)).thenReturn(false);
         listener.activateFromItem(owner,session);
         verify(p,times(1)).damage(26.0,owner);
         verify(world,never()).strikeLightningEffect(any());

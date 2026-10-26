@@ -14,6 +14,7 @@ import com.leadsystems.minecraft.ascension.storage.PlayerRepository;
 import com.leadsystems.minecraft.ascension.storage.StorageExecutor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.GameRules;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -124,7 +125,8 @@ public final class CombatProgressListener implements Listener {
         if (killer == null) {
             killer = Attribution.player(event.getDamageSource().getCausingEntity());
         }
-        if (killer == null || !validPlayer(killer) || !validPlayer(victim) || !victim.getWorld().getPVP()
+        if (killer == null || !validPlayer(killer) || !validPlayer(victim)
+                || !victim.getWorld().getGameRuleValue(GameRules.PVP)
                 || sameTeam(killer, victim)) {
             return;
         }

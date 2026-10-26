@@ -12,8 +12,8 @@ repositories {
 }
 
 dependencies {
-    // Newest published Paper 26.3 build; pin an exact one (26.3.build.<N>-stable) for reproducible releases.
-    compileOnly("io.papermc.paper:paper-api:26.3.build.+")
+    // The Paper 26.3 build MockBukkit 4.118.0 is built against; keep both in step when upgrading.
+    compileOnly("io.papermc.paper:paper-api:26.3.build.200-stable")
 
     // Floodgate & Cumulus for Bedrock forms (same coordinates as the root LeadSystems build).
     compileOnly("org.geysermc.floodgate:api:2.2.3-SNAPSHOT")
@@ -28,7 +28,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-core:5.24.0")
-    testImplementation("io.papermc.paper:paper-api:26.3.build.+")
+    testImplementation("io.papermc.paper:paper-api:26.3.build.200-stable")
     testImplementation("org.geysermc.floodgate:api:2.2.3-SNAPSHOT")
     testImplementation("org.geysermc.cumulus:cumulus:1.1.2")
     // Paper 26.3 ships sqlite-jdbc 3.49.1.0 at runtime (paper-server runtimeOnly); tests use the same version.

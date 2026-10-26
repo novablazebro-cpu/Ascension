@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.Location;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -87,9 +88,9 @@ class TitleAbilityListenerTest {
         when(target.getWorld()).thenReturn(world);
         when(owner.getScoreboard()).thenReturn(board);
         when(target.getScoreboard()).thenReturn(board);
-        when(world.getPVP()).thenReturn(false);
+        when(world.getGameRuleValue(org.bukkit.GameRules.PVP)).thenReturn(false);
         assertFalse(TitleAbilityListener.expandedPotionTargetAllowed(owner, target, true));
-        when(world.getPVP()).thenReturn(true);
+        when(world.getGameRuleValue(org.bukkit.GameRules.PVP)).thenReturn(true);
         when(board.getEntryTeam("Owner")).thenReturn(team);
         when(board.getEntryTeam("Target")).thenReturn(team);
         assertFalse(TitleAbilityListener.expandedPotionTargetAllowed(owner, target, true));
@@ -197,7 +198,7 @@ class TitleAbilityListenerTest {
         World world = mock(World.class);
         Scoreboard scoreboard = mock(Scoreboard.class);
         when(owner.getWorld()).thenReturn(world);
-        when(world.getPVP()).thenReturn(true);
+        when(world.getGameRuleValue(org.bukkit.GameRules.PVP)).thenReturn(true);
         when(target.getGameMode()).thenReturn(GameMode.SURVIVAL);
         when(owner.getScoreboard()).thenReturn(scoreboard);
         when(target.getScoreboard()).thenReturn(scoreboard);
@@ -205,7 +206,7 @@ class TitleAbilityListenerTest {
         when(target.getName()).thenReturn("Target");
 
         assertTrue(TitleAbilityListener.validGroundSlamTarget(owner, target));
-        when(world.getPVP()).thenReturn(false);
+        when(world.getGameRuleValue(org.bukkit.GameRules.PVP)).thenReturn(false);
         assertFalse(TitleAbilityListener.validGroundSlamTarget(owner, target));
     }
     @Test
@@ -243,12 +244,25 @@ class TitleAbilityListenerTest {
     }
 
     @Test
-    void livingMetalNeverConsumesMoreThanConfiguredFraction() {
-        assertEquals(0, TitleAbilityListener.repairXpSpend(1, 0.25));
-        assertEquals(1, TitleAbilityListener.repairXpSpend(4, 0.25));
-        assertEquals(2, TitleAbilityListener.repairXpSpend(10, 0.25));
-        assertEquals(10, TitleAbilityListener.repairXpSpend(10, 2.0));
-        assertEquals(0, TitleAbilityListener.repairXpSpend(10, -1.0));
+    void refuseDeathYieldsToTotemsKillAndVoid() {
+        ItemStack totem = mock(ItemStack.class);
+        ItemStack sword = mock(ItemStack.class);
+        when(totem.getType()).thenReturn(Material.TOTEM_OF_UNDYING);
+        when(sword.getType()).thenReturn(Material.IRON_SWORD);
+        var attack = org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_ATTACK;
+        assertTrue(TitleAbilityListener.refuseDeathApplies(attack, sword, null));
+        assertFalse(TitleAbilityListener.refuseDeathApplies(attack, totem, null));
+        assertFalse(TitleAbilityListener.refuseDeathApplies(attack, sword, totem));
+        assertFalse(TitleAbilityListener.refuseDeathApplies(
+                org.bukkit.event.entity.EntityDamageEvent.DamageCause.KILL, sword, null));
+        assertFalse(TitleAbilityListener.refuseDeathApplies(
+                org.bukkit.event.entity.EntityDamageEvent.DamageCause.VOID, sword, null));
+    }
+
+    @Test
+    void cooldownKeysNameTheirTitle() {
+        assertEquals("voidwalker", TitleAbilityListener.titleIdOf("title.voidwalker.void_step.charge.2"));
+        assertEquals("undying", TitleAbilityListener.titleIdOf("title.undying.refuse_death"));
     }
 
     @Test

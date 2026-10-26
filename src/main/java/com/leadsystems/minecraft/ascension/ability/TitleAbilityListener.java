@@ -19,6 +19,7 @@ import org.bukkit.Color;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
+import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -27,14 +28,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.data.Ageable;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
-import org.bukkit.event.block.BlockReceiveGameEvent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
@@ -55,7 +54,6 @@ import org.bukkit.event.entity.LingeringPotionSplashEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.LootGenerateEvent;
@@ -64,13 +62,11 @@ import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.loot.Lootable;
 import org.bukkit.loot.LootTables;
 import org.bukkit.loot.LootContext;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.potion.PotionEffectTypeCategory;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
 import org.bukkit.util.RayTraceResult;
@@ -96,13 +92,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
     private static final String REFUSE_DEATH = "title.undying.refuse_death";
     private static final String VOID_STEP_CHARGE = "title.voidwalker.void_step.charge.";
     private static final NamespacedKey COLOSSUS_HEALTH = new NamespacedKey("ascension", "colossus_health");
-    private static final Set<Material> CROPS = Set.of(Material.WHEAT, Material.CARROTS, Material.POTATOES,
-            Material.BEETROOTS, Material.NETHER_WART, Material.COCOA);
-    /* These scans run on the main thread. Keep both their reachable volume and per-tick work bounded. */
+    /* Treasure Pulse reads block entities of loaded chunks only: at most 16 chunks at this radius. */
     private static final int TREASURE_PULSE_MAX_RADIUS = 24;
-    private static final int GROWTH_PULSE_MAX_RADIUS = 12;
-    private static final int PULSE_BLOCKS_PER_TICK = 256;
-    private static final int GROWTH_BLOCK_CHANGES_PER_TICK = 32;
     private final SessionManager sessions;
     private final Supplier<ConfigSnapshot> config;
     private final TitleAbilityResolver resolver;
@@ -112,13 +103,11 @@ public final class TitleAbilityListener implements Listener, SessionHook {
     private final PlayerRepository repo;
     private final MainThread main;
     private final Messages messages;
-    private final Map<UUID, Long> parryUntil = new HashMap<>();
     private final Map<UUID, Long> deepLureUntil = new HashMap<>();
     private final Map<UUID, UUID> deepLureHooks = new HashMap<>();
     private final Map<Block, TreasureOpen> recentTreasureOpens = new HashMap<>();
     private final Map<UUID, EnhancedPotion> enhancedPotions = new HashMap<>();
     private final Map<MarkKey, Mark> marks = new HashMap<>();
-    private final Map<UUID, Long> silenceUntil = new HashMap<>();
     private final Map<UUID, RewindSnapshot> rewindSnapshots = new HashMap<>();
     private final Map<UUID, Long> moltenUntil = new HashMap<>();
     private final Map<UUID, TitleDefinition> moltenDefinitions = new HashMap<>();
@@ -126,8 +115,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
     private final Map<UUID, Deque<RageDamage>> rage = new HashMap<>();
     private final Map<EntityDamageByEntityEvent, CombatActivation> pendingCombatActivations = new WeakHashMap<>();
     private final Map<UUID, UUID> activeSporeClouds = new HashMap<>();
-    private final Map<UUID, UUID> treasurePulseScans = new HashMap<>();
-    private final Map<UUID, UUID> growthPulseScans = new HashMap<>();
     /* Invalidates deferred title callbacks after a title/session lifecycle change. */
     private final Map<UUID, Long> runtimeEpochs = new HashMap<>();
     private long nextRuntimeEpoch = 1L;
@@ -144,48 +131,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
     private record RewindSnapshot(Location location, double health, long expiresAt) { }
     private record RageDamage(double healthLost, long at) { }
     private record TreasureOpen(UUID playerId, long at) { }
-    private record EquippedItem(EquipmentSlot slot, ItemStack item) { }
-    private static final class PulseScan {
-        private final UUID token;
-        private final UUID ownerId;
-        private final long runtimeEpoch;
-        private final Block center;
-        private final Location origin;
-        private final int radius;
-        private final int verticalRadius;
-        private final TitleDefinition definition;
-        private int x;
-        private int y;
-        private int z;
-        private Block nearest;
-        private double nearestDistance = Double.MAX_VALUE;
-        private int changed;
-
-        private PulseScan(UUID token, UUID ownerId, long runtimeEpoch, Location origin, int radius, int verticalRadius, TitleDefinition definition) {
-            this.token = token;
-            this.ownerId = ownerId;
-            this.runtimeEpoch = runtimeEpoch;
-            this.center = origin.getBlock();
-            this.origin = origin.clone();
-            this.radius = radius;
-            this.verticalRadius = verticalRadius;
-            this.definition = definition;
-            this.x = -radius;
-            this.y = -verticalRadius;
-            this.z = -radius;
-        }
-
-        private boolean advance() {
-            z++;
-            if (z <= radius) return true;
-            z = -radius;
-            y++;
-            if (y <= verticalRadius) return true;
-            y = -verticalRadius;
-            x++;
-            return x <= radius;
-        }
-    }
 
     public TitleAbilityListener(SessionManager sessions, Supplier<ConfigSnapshot> config, MobClassifier mobs,
                                 PlacedBlockTracker placed, StorageExecutor storage,
@@ -224,8 +169,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         deepLureUntil.remove(playerId);
         rage.remove(playerId);
         activeSporeClouds.remove(playerId);
-        treasurePulseScans.remove(playerId);
-        growthPulseScans.remove(playerId);
         deepLureHooks.remove(playerId);
         recentTreasureOpens.values().removeIf(open -> open.playerId().equals(playerId));
         marks.keySet().removeIf(key -> key.owner().equals(playerId) || key.victim().equals(playerId));
@@ -554,17 +497,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                 && entity.getLocation().distanceSquared(origin) <= radius * radius);
     }
 
-    private void activateSilence(Player owner, PlayerSession session, long now) {
-        TitleDefinition definition = title(session, "echo_walker");
-        String key = "title.echo_walker.silence";
-        if (!ready(owner, session, key, now)) return;
-        long duration = (long) (definition.abilitySetting("duration-seconds", 8) * 1000);
-        silenceUntil.put(owner.getUniqueId(), now + duration);
-        owner.getWorld().spawnParticle(Particle.SCULK_SOUL, owner.getLocation().add(0, 1, 0),
-                20, 0.5, 0.7, 0.5, 0.02);
-        start(session, key, cooldown(definition, 45), now);
-    }
-
     private void activateSoulHeal(Player owner, PlayerSession session, long now) {
         String key = "title.soul_reaper.soul_storage";
         String operation = key + ".pending";
@@ -646,56 +578,45 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         TitleDefinition definition = title(session, "treasure_whisperer");
         String key = "title.treasure_whisperer.treasure_pulse";
         if (!ready(owner, session, key, now)) return;
-        UUID token = UUID.randomUUID();
-        if (treasurePulseScans.putIfAbsent(owner.getUniqueId(), token) != null) return;
         int radius = boundedRadius(definition.abilitySetting("range", 16), TREASURE_PULSE_MAX_RADIUS);
-        PulseScan scan = new PulseScan(token, owner.getUniqueId(), runtimeEpoch(owner.getUniqueId()),
-                owner.getLocation(), radius, radius, definition);
-        scanTreasurePulse(scan);
-    }
-
-    private void scanTreasurePulse(PulseScan scan) {
-        Player owner = Bukkit.getPlayer(scan.ownerId);
-        if (!isActivePulseScan(treasurePulseScans, scan, owner, "treasure_whisperer")) return;
-        for (int checked = 0; checked < PULSE_BLOCKS_PER_TICK; checked++) {
-            Block block = scan.center.getRelative(scan.x, scan.y, scan.z);
-            World world = block.getWorld();
-            if (world.isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
-                Material type = block.getType();
-                if (type == Material.CHEST || type == Material.TRAPPED_CHEST || type == Material.BARREL
-                        || type.name().endsWith("SHULKER_BOX")) {
-                    Location containerCenter = block.getLocation().add(0.5, 0.5, 0.5);
-                    if (withinRadius(scan.origin, containerCenter, scan.radius)
-                            && block.getState() instanceof Lootable lootable && lootable.getLootTable() != null) {
-                        double distance = containerCenter.distanceSquared(scan.origin);
-                        if (distance < scan.nearestDistance) {
-                            scan.nearest = block;
-                            scan.nearestDistance = distance;
-                        }
-                    }
-                }
-            }
-            if (!scan.advance()) {
-                finishTreasurePulse(scan, owner);
-                return;
-            }
-        }
-        main.later(1, () -> scanTreasurePulse(scan));
-    }
-
-    private void finishTreasurePulse(PulseScan scan, Player owner) {
-        if (!isActivePulseScan(treasurePulseScans, scan, owner, "treasure_whisperer")) return;
-        treasurePulseScans.remove(scan.ownerId, scan.token);
-        if (scan.nearest == null) {
+        Block nearest = nearestLootContainer(owner.getLocation(), radius);
+        if (nearest == null) {
             noCondition(owner, "treasure_whisperer");
             return;
         }
-        owner.getWorld().spawnParticle(Particle.END_ROD, scan.nearest.getLocation().add(0.5, 1, 0.5),
+        owner.getWorld().spawnParticle(Particle.END_ROD, nearest.getLocation().add(0.5, 1, 0.5),
                 30, 0.45, 0.6, 0.45, 0.02);
-        PlayerSession session = sessions.get(scan.ownerId);
-        start(session, "title.treasure_whisperer.treasure_pulse", cooldown(scan.definition, 60),
-                System.currentTimeMillis());
+        start(session, key, cooldown(definition, 60), now);
         activated(owner, "treasure_whisperer");
+    }
+
+    /** Nearest container that still has a loot table, read from loaded chunks' block entities. */
+    static Block nearestLootContainer(Location origin, int radius) {
+        World world = origin.getWorld();
+        Block nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+        for (int chunkX = (origin.getBlockX() - radius) >> 4; chunkX <= (origin.getBlockX() + radius) >> 4; chunkX++) {
+            for (int chunkZ = (origin.getBlockZ() - radius) >> 4; chunkZ <= (origin.getBlockZ() + radius) >> 4; chunkZ++) {
+                if (!world.isChunkLoaded(chunkX, chunkZ)) continue;
+                for (BlockState state : world.getChunkAt(chunkX, chunkZ)
+                        .getTileEntities(TitleAbilityListener::isTreasureContainer, false)) {
+                    if (!(state instanceof Lootable lootable) || lootable.getLootTable() == null) continue;
+                    Location containerCenter = state.getLocation().add(0.5, 0.5, 0.5);
+                    double distance = containerCenter.distanceSquared(origin);
+                    if (distance <= (double) radius * radius && distance < nearestDistance) {
+                        nearest = state.getBlock();
+                        nearestDistance = distance;
+                    }
+                }
+            }
+        }
+        return nearest;
+    }
+
+    private static boolean isTreasureContainer(Block block) {
+        Material type = block.getType();
+        return type == Material.CHEST || type == Material.TRAPPED_CHEST || type == Material.BARREL
+                || type.name().endsWith("SHULKER_BOX");
     }
 
     private void storeSoul(Player owner) {
@@ -712,20 +633,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                         Messages.ph("maximum", maximum));
             }
         });
-    }
-
-    private static EquippedItem mostDamagedEquipment(Player owner) {
-        EquippedItem best = null;
-        int damage = 0;
-        for (EquipmentSlot slot : new EquipmentSlot[] {EquipmentSlot.HEAD, EquipmentSlot.CHEST,
-                EquipmentSlot.LEGS, EquipmentSlot.FEET, EquipmentSlot.HAND, EquipmentSlot.OFF_HAND}) {
-            ItemStack item = owner.getInventory().getItem(slot);
-            if (item != null && item.getItemMeta() instanceof Damageable meta && meta.getDamage() > damage) {
-                best = new EquippedItem(slot, item);
-                damage = meta.getDamage();
-            }
-        }
-        return best;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -756,7 +663,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         start(session, key, cooldown(session, "new_arrival", 12), now);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    /* HIGH, before onFatalDamage (HIGHEST): Refuse Death must see damage after Sonic Ward reduces it. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDefend(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player) || event.getFinalDamage() <= 0) {
             return;
@@ -790,31 +698,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                 start(session, key, cooldown(session, "wardens_bane", 60), now);
             }
         }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onParry(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player defender) || !(event.getDamager() instanceof Player attacker)
-                || !eligibleOpponent(defender, attacker)) {
-            return;
-        }
-        PlayerSession session = sessions.get(defender);
-        String key = "title.duelist.parry";
-        long now = System.currentTimeMillis();
-        Long armedUntil = parryUntil.get(defender.getUniqueId());
-        if (!equipped(session, "duelist") || armedUntil == null || armedUntil < now) {
-            if (armedUntil != null && armedUntil < now) {
-                parryUntil.remove(defender.getUniqueId());
-            }
-            return;
-        }
-        parryUntil.remove(defender.getUniqueId());
-        event.setDamage(event.getDamage() * title(session, "duelist").abilitySetting("damage-multiplier", 0.5));
-        Vector away = awayFrom(defender, attacker);
-        attacker.setVelocity(away.multiply(title(session, "duelist").abilitySetting("knockback", 0.8)).setY(0.25));
-        defender.getWorld().spawnParticle(Particle.CRIT, defender.getLocation().add(0, 1, 0),
-                24, 0.6, 0.7, 0.6, 0.08);
-        defender.playSound(defender.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 0.9f);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -1077,7 +960,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             item.setItemMeta(meta);
             potion.setItem(item);
             boolean harmful = effects.stream().anyMatch(effect ->
-                    effect.getType().getCategory() == PotionEffectTypeCategory.HARMFUL);
+                    effect.getType().getEffectCategory() == PotionEffectType.Category.HARMFUL);
             enhancedPotions.put(potion.getUniqueId(), new EnhancedPotion(owner.getUniqueId(), harmful, title(session, "alchemist").abilitySetting("splash-radius", 5)));
             main.later(200, () -> enhancedPotions.remove(potion.getUniqueId()));
             start(session, key, cooldown(session, "alchemist", 10), now);
@@ -1193,44 +1076,11 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onLivingMetal(PlayerExpChangeEvent event) {
-        if (event.getAmount() <= 0) return;
-        Player owner = event.getPlayer();
-        PlayerSession session = sessions.get(owner);
-        if (!equipped(session, "forgeheart")) return;
-        EquippedItem equipped = mostDamagedEquipment(owner);
-        if (equipped == null || !(equipped.item().getItemMeta() instanceof Damageable meta)) return;
-        TitleDefinition title = title(session, "forgeheart");
-        int spend = repairXpSpend(event.getAmount(), title.abilitySetting("xp-fraction", 0.25));
-        if (spend <= 0) return;
-        int repair = Math.max(1, (int) (spend * title.abilitySetting("durability-per-xp", 2)));
-        meta.setDamage(Math.max(0, meta.getDamage() - repair));
-        equipped.item().setItemMeta(meta);
-        owner.getInventory().setItem(equipped.slot(), equipped.item());
-        event.setAmount(event.getAmount() - spend);
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onVibration(BlockReceiveGameEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
-        UUID playerId = player.getUniqueId();
-        Long until = silenceUntil.get(playerId);
-        if (until == null) return;
-        if (until <= System.currentTimeMillis()) {
-            silenceUntil.remove(playerId);
-            return;
-        }
-        event.setCancelled(true);
-    }
-
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
         UUID playerId = event.getPlayer().getUniqueId();
         clearTemporaryState(playerId);
-        parryUntil.remove(playerId);
         deepLureUntil.remove(playerId);
-        silenceUntil.remove(playerId);
         shattering.remove(playerId);
         marks.keySet().removeIf(key -> key.owner().equals(playerId) || key.victim().equals(playerId));
         if (event.getPlayer().equals(pendingDamageOwner) || event.getPlayer().equals(pendingDamageTarget)) {
@@ -1314,7 +1164,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             return;
         }
         PlayerSession session = sessions.get(player);
-        if (!equipped(session, "undying")) {
+        if (!equipped(session, "undying") || !refuseDeathApplies(event.getCause(),
+                player.getInventory().getItemInMainHand(), player.getInventory().getItemInOffHand())) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -1333,13 +1184,21 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         start(session, REFUSE_DEATH, cooldown(session, "undying", 86_400), now);
     }
 
-    static double vampireHeal(double finalDamage, double ratio, double cap) {
-        return Math.max(0.0, Math.min(cap, finalDamage * ratio));
+    /**
+     * Refuse Death leaves /kill and the void alone (it cannot save the player there) and yields to a
+     * held Totem of Undying, so the 24-hour cooldown is never spent when vanilla would save the player.
+     */
+    static boolean refuseDeathApplies(EntityDamageEvent.DamageCause cause, ItemStack mainHand, ItemStack offHand) {
+        return cause != EntityDamageEvent.DamageCause.KILL && cause != EntityDamageEvent.DamageCause.VOID
+                && !isTotem(mainHand) && !isTotem(offHand);
     }
 
-    static int repairXpSpend(int gainedXp, double fraction) {
-        if (gainedXp <= 0 || !Double.isFinite(fraction) || fraction <= 0) return 0;
-        return Math.min(gainedXp, (int) Math.floor(gainedXp * Math.min(1.0, fraction)));
+    private static boolean isTotem(ItemStack item) {
+        return item != null && item.getType() == Material.TOTEM_OF_UNDYING;
+    }
+
+    static double vampireHeal(double finalDamage, double ratio, double cap) {
+        return Math.max(0.0, Math.min(cap, finalDamage * ratio));
     }
 
     private void activateAscension(Player owner, PlayerSession session, long now) {
@@ -1379,20 +1238,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         }
         start(session, key, cooldown(definition, 30), now);
         messages.actionBar(owner, "ability-activated", Messages.ph("ability", definition.abilityName()));
-    }
-
-    private void primeParry(Player owner, PlayerSession session, long now) {
-        TitleDefinition definition = title(session, "duelist");
-        String key = "title.duelist.parry";
-        if (!ready(owner, session, key, now)) {
-            return;
-        }
-        parryUntil.put(owner.getUniqueId(), now + 5_000L);
-        start(session, key, cooldown(definition, 30), now);
-        owner.getWorld().spawnParticle(Particle.ENCHANTED_HIT, owner.getLocation().add(0, 1, 0),
-                18, 0.5, 0.7, 0.5, 0.04);
-        owner.playSound(owner.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.8f, 1.3f);
-        messages.actionBar(owner, "ability-primed", Messages.ph("ability", definition.abilityName()));
     }
 
     private void primeDeepLure(Player owner, PlayerSession session, long now) {
@@ -1437,16 +1282,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
 
     private static int boundedRadius(double configuredRadius, int maximum) {
         return Math.max(1, Math.min(maximum, (int) configuredRadius));
-    }
-
-    private boolean isActivePulseScan(Map<UUID, UUID> scans, PulseScan scan, Player owner, String titleId) {
-        if (owner != null && owner.getWorld().equals(scan.origin.getWorld())
-                && isCurrentRuntime(scan.ownerId, scan.runtimeEpoch, titleId)
-                && scan.token.equals(scans.get(scan.ownerId))) {
-            return true;
-        }
-        scans.remove(scan.ownerId, scan.token);
-        return false;
     }
 
     private boolean groundSlam(Player owner, TitleDefinition title) {
@@ -1562,20 +1397,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 1f, 0.8f);
         start(session, key, cooldown(title, 60), now);
         activated(owner, "conqueror");
-    }
-
-    private void activateFade(Player owner, PlayerSession session, long now) {
-        TitleDefinition definition = title(session, "phantom");
-        String key = "title.phantom.fade";
-        if (!ready(owner, session, key, now)) {
-            return;
-        }
-        int ticks = (int) (definition.abilitySetting("duration-seconds", 5) * 20);
-        owner.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, ticks, 0, false, false, true));
-        owner.getWorld().spawnParticle(Particle.LARGE_SMOKE, owner.getLocation().add(0, 1, 0),
-                30, 0.7, 0.8, 0.7, 0.03);
-        owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_PHANTOM_FLAP, 1f, 0.7f);
-        start(session, key, cooldown(definition, 35), now);
     }
 
     private void activateVoidStep(Player owner, PlayerSession session, long now) {
@@ -1724,58 +1545,6 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         activated(owner, "ashborn");
     }
 
-    private void activateGrowthPulse(Player owner, PlayerSession session, long now) {
-        TitleDefinition definition = title(session, "harvester");
-        String key = "title.harvester.growth_pulse";
-        if (!ready(owner, session, key, now)) {
-            return;
-        }
-        UUID token = UUID.randomUUID();
-        if (growthPulseScans.putIfAbsent(owner.getUniqueId(), token) != null) return;
-        int radius = boundedRadius(definition.abilitySetting("radius", 5), GROWTH_PULSE_MAX_RADIUS);
-        PulseScan scan = new PulseScan(token, owner.getUniqueId(), runtimeEpoch(owner.getUniqueId()),
-                owner.getLocation(), radius, Math.min(radius, 3), definition);
-        scanGrowthPulse(scan);
-    }
-
-    private void scanGrowthPulse(PulseScan scan) {
-        Player owner = Bukkit.getPlayer(scan.ownerId);
-        if (!isActivePulseScan(growthPulseScans, scan, owner, "harvester")) return;
-        int changesThisTick = 0;
-        for (int checked = 0; checked < PULSE_BLOCKS_PER_TICK
-                && changesThisTick < GROWTH_BLOCK_CHANGES_PER_TICK; checked++) {
-            Block block = scan.center.getRelative(scan.x, scan.y, scan.z);
-            World world = block.getWorld();
-            if (world.isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)
-                    && CROPS.contains(block.getType()) && block.getBlockData() instanceof Ageable crop
-                    && crop.getAge() < crop.getMaximumAge()) {
-                crop.setAge(crop.getAge() + 1);
-                block.setBlockData(crop, true);
-                scan.changed++;
-                changesThisTick++;
-            }
-            if (!scan.advance()) {
-                finishGrowthPulse(scan, owner);
-                return;
-            }
-        }
-        main.later(1, () -> scanGrowthPulse(scan));
-    }
-
-    private void finishGrowthPulse(PulseScan scan, Player owner) {
-        if (!isActivePulseScan(growthPulseScans, scan, owner, "harvester")) return;
-        growthPulseScans.remove(scan.ownerId, scan.token);
-        if (scan.changed == 0) {
-            noCondition(owner, "harvester");
-            return;
-        }
-        owner.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, owner.getLocation().add(0, 1, 0),
-                Math.min(60, scan.changed * 2), scan.radius / 2.0, 0.8, scan.radius / 2.0, 0);
-        PlayerSession session = sessions.get(scan.ownerId);
-        start(session, "title.harvester.growth_pulse", cooldown(scan.definition, 90), System.currentTimeMillis());
-        activated(owner, "harvester");
-    }
-
     private void activateCorruptionPurge(Player owner, PlayerSession session, long now) {
         String key = "title.witherbound.corruption_purge";
         if (!ready(owner, session, key, now)) {
@@ -1895,7 +1664,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
 
     private static boolean eligibleOpponent(Player owner, Player target) {
         GameMode mode = target.getGameMode();
-        return !owner.equals(target) && owner.getWorld().getPVP()
+        return !owner.equals(target) && owner.getWorld().getGameRuleValue(GameRules.PVP)
                 && (mode == GameMode.SURVIVAL || mode == GameMode.ADVENTURE) && !sameTeam(owner, target);
     }
 
@@ -1911,8 +1680,16 @@ public final class TitleAbilityListener implements Listener, SessionHook {
 
     private void showCooldown(Player player, PlayerSession session, String key, long now) {
         long seconds = (session.cooldowns().remainingMillis(key, now) + 999) / 1000;
-        messages.actionBar(player, "ability-cooldown", Messages.ph("ability", "Ability"),
+        TitleDefinition definition = title(session, titleIdOf(key));
+        messages.actionBar(player, "ability-cooldown",
+                Messages.ph("ability", definition == null ? "Ability" : definition.abilityName()),
                 Messages.ph("seconds", seconds));
+    }
+
+    /** "title.voidwalker.void_step.charge.2" -> "voidwalker". */
+    static String titleIdOf(String cooldownKey) {
+        String[] parts = cooldownKey.split("\\.");
+        return parts.length > 1 ? parts[1] : cooldownKey;
     }
 
     private void bloodParticles(LivingEntity victim, Player owner) {
