@@ -6,6 +6,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.title.Title;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -13,6 +14,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -47,6 +49,13 @@ public final class Messages {
     /** Shows a message on the action bar. */
     public void actionBar(Player to, String key, TagResolver... placeholders) {
         to.sendActionBar(Contrast.on(Contrast.Surface.CHAT, get(key, placeholders)));
+    }
+
+    /** Shows a big on-screen title and subtitle (rank-ups, title level-ups). */
+    public void title(Player to, String titleKey, String subtitleKey, TagResolver... placeholders) {
+        to.showTitle(Title.title(Contrast.on(Contrast.Surface.CHAT, get(titleKey, placeholders)),
+                Contrast.on(Contrast.Surface.CHAT, get(subtitleKey, placeholders)),
+                Title.Times.times(Duration.ofMillis(300), Duration.ofMillis(2200), Duration.ofMillis(700))));
     }
 
     public Component prefix() {

@@ -187,6 +187,7 @@ public class AscensionPlugin extends JavaPlugin {
             titles.refreshLevel(player, session);
             titleAbilities.reconcileLevel(player, session);
             abilityItems.refreshLevel(player, session);
+            titleAbilities.celebrateLevel(player, session);
         });
         progress.setTitleXp(titleXp);
         AdminService admin = new AdminService(sessions, storage, repo, main, config::get, messages, audit, titles);

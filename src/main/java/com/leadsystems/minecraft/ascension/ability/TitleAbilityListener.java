@@ -103,6 +103,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
     private final PlayerRepository repo;
     private final MainThread main;
     private final Messages messages;
+    private final AbilityFx fx;
     private final Map<UUID, Long> deepLureUntil = new HashMap<>();
     private final Map<UUID, UUID> deepLureHooks = new HashMap<>();
     private final Map<Block, TreasureOpen> recentTreasureOpens = new HashMap<>();
@@ -144,6 +145,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         this.repo = repo;
         this.main = main;
         this.messages = messages;
+        this.fx = new AbilityFx(main);
     }
 
     @Override
@@ -193,6 +195,19 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         if (health > max.getValue()) player.setHealth(max.getValue());
     }
 
+    /** Title XP crossed a level: a splash with the new level and the upgraded ability. */
+    public void celebrateLevel(Player player, PlayerSession session) {
+        String titleId = session == null ? null : session.equippedTitle();
+        TitleDefinition definition = titleId == null ? null : title(session, titleId);
+        if (definition == null || !player.isOnline()) return;
+        messages.title(player, "title-level-title", "title-level-subtitle",
+                Messages.ph("level", resolver.level(session, titleId)), Messages.ph("title", definition.name()),
+                Messages.ph("ability", definition.abilityName()));
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 0.8f);
+        player.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 0.6f, 1.6f);
+        fx.helix(player, 0.8, 2.4, Particle.HAPPY_VILLAGER, null, 20);
+    }
+
     /** Called only after an owner-bound ability item passes validation. */
     public void activateFromItem(Player owner, PlayerSession session) {
         if (session == null || !equipped(session, session.equippedTitle())) {
@@ -238,6 +253,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         RewindSnapshot snapshot = rewindSnapshots.get(owner.getUniqueId());
         if (snapshot != null && rewindSnapshotActive(snapshot.expiresAt(), now)
                 && equipped(session, "chronomancer")) {
+            Location departed = owner.getLocation().add(0, 1, 0);
             if (!owner.getWorld().equals(snapshot.location().getWorld())
                     || !safeVoidStepFeet(snapshot.location().getBlock())
                     || !owner.teleport(snapshot.location())) {
@@ -251,6 +267,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             owner.setHealth(Math.min(max, snapshot.health()));
             owner.getWorld().spawnParticle(Particle.REVERSE_PORTAL, owner.getLocation().add(0, 1, 0),
                     32, 0.5, 0.8, 0.5, 0.03);
+            fx.beam(departed, owner.getLocation().add(0, 1, 0), Particle.REVERSE_PORTAL, null, 6);
+            owner.getWorld().playSound(owner.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.6f);
             activated(owner, "chronomancer");
             return;
         }
@@ -266,6 +284,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         start(session, key, cooldown(definition, 120), now);
         owner.getWorld().spawnParticle(Particle.ENCHANT, owner.getLocation().add(0, 1, 0),
                 18, 0.4, 0.7, 0.4, 0.02);
+        fx.shockwave(owner.getLocation(), 1.2, Particle.DUST, AbilityFx.dust(0x9AA7C7, 1.0f), 4);
+        owner.getWorld().playSound(owner.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.6f, 1.8f);
         messages.actionBar(owner, "ability-primed", Messages.ph("ability", definition.abilityName()));
     }
 
@@ -291,6 +311,9 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         }
         owner.getWorld().spawnParticle(Particle.SNOWFLAKE, owner.getLocation().add(0, 1, 0),
                 60, radius / 2, 0.5, radius / 2, 0.02);
+        fx.shockwave(owner.getLocation(), radius, Particle.SNOWFLAKE, null, 8);
+        owner.getWorld().playSound(owner.getLocation(), Sound.BLOCK_GLASS_BREAK, 1f, 0.6f);
+        owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_PLAYER_HURT_FREEZE, 0.8f, 1f);
         start(session, key, cooldown(definition, 45), now);
         activated(owner, "frostbound");
     }
@@ -304,6 +327,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                 definition.abilitySetting("duration-seconds", 8) * 1000));
         owner.getWorld().spawnParticle(Particle.FLAME, owner.getLocation().add(0, 1, 0),
                 32, 0.45, 0.7, 0.45, 0.03);
+        fx.helix(owner, 0.7, 2.0, Particle.FLAME, null, 20);
+        owner.getWorld().playSound(owner.getLocation(), Sound.ITEM_FIRECHARGE_USE, 1f, 0.8f);
         start(session, key, cooldown(definition, 60), now);
         activated(owner, "emberforge");
     }
@@ -329,6 +354,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                 }
                 center.getWorld().spawnParticle(Particle.SPORE_BLOSSOM_AIR, center.clone().add(0, 1, 0),
                         35, radius / 2, 0.6, radius / 2, 0.01);
+                fx.shockwave(center, radius, Particle.DUST, AbilityFx.dust(0x7FB238, 1.2f), 3);
                 long pulse = System.currentTimeMillis();
                 for (Entity entity : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
                     if (!(entity instanceof LivingEntity target) || !validAbilityTarget(owner, target)
@@ -377,6 +403,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             if (!target.isOnline() || target.isDead() || !eligibleOpponent(owner, target)
                     || !withinRadius(origin, target.getLocation(), range) || !damageAccepted(owner, target, damage)) continue;
             target.getWorld().strikeLightningEffect(target.getLocation());
+            fx.column(target.getLocation(), 6, Particle.ELECTRIC_SPARK, null);
             hits++;
         }
         if (hits == 0) {
@@ -416,6 +443,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             noCondition(owner, "tempest_herald");
             return;
         }
+        fx.arc(owner.getEyeLocation(), primary.getEyeLocation(), Particle.ELECTRIC_SPARK, null);
         double chainRange = title.abilitySetting("chain-range", 8);
         double chainedDamage = chainDamage(damage, title.abilitySetting("chain-multiplier", 1.0));
         primary.getNearbyEntities(chainRange, chainRange, chainRange).stream()
@@ -424,7 +452,11 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                 .filter(target -> withinRadius(primary.getLocation(), target.getLocation(), chainRange))
                 .sorted(Comparator.comparingDouble(target -> target.getLocation().distanceSquared(primary.getLocation())))
                 .limit(Math.max(0, Math.min(16, (int) title.abilitySetting("extra-chain-targets", 2))))
-                .forEach(target -> strike(owner, target, chainedDamage));
+                .forEach(target -> {
+                    if (strike(owner, target, chainedDamage)) {
+                        fx.arc(primary.getEyeLocation(), target.getEyeLocation(), Particle.ELECTRIC_SPARK, null);
+                    }
+                });
         start(session, key, cooldown(title, 45), now);
         activated(owner, "tempest_herald");
     }
@@ -475,6 +507,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                         effectTicks(title.abilitySetting("raid-strength-seconds", 8)), 0, false, true, true));
             }
             owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 0.7f);
+            owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_BREEZE_WIND_BURST, 1f, 0.8f);
+            fx.shockwave(owner.getLocation(), radius, Particle.CLOUD, null, 6);
             start(session, key, cooldown(title, 35), now);
             activated(owner, "raidbreaker");
         } else {
@@ -534,6 +568,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             owner.setHealth(Math.min(max, owner.getHealth() + heal));
             owner.getWorld().spawnParticle(Particle.SOUL, owner.getLocation().add(0, 1, 0),
                     18, 0.4, 0.6, 0.4, 0.03);
+            fx.helix(owner, 0.8, 2.2, Particle.SOUL_FIRE_FLAME, null, 16);
             owner.playSound(owner.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.4f);
             start(live, key, cooldown(definition, 20), System.currentTimeMillis());
             activated(owner, "soul_reaper");
@@ -569,6 +604,14 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             }
             int ticks = (int) (definition.abilitySetting("duration-seconds", 5) * 20);
             target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, ticks, 0, false, false, true));
+            Location eye = owner.getEyeLocation();
+            Vector toward = target.getEyeLocation().toVector().subtract(eye.toVector());
+            double length = Math.min(8, toward.length());
+            if (length > 0.5) {
+                fx.beam(eye, eye.clone().add(toward.normalize().multiply(length)), Particle.DUST,
+                        AbilityFx.dust(0xC0392B, 0.9f), 8);
+            }
+            owner.playSound(owner.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 0.6f, 0.8f);
             start(live, key, cooldown(definition, 45), System.currentTimeMillis());
             activated(owner, "bounty_hunter");
         });
@@ -586,6 +629,9 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         }
         owner.getWorld().spawnParticle(Particle.END_ROD, nearest.getLocation().add(0.5, 1, 0.5),
                 30, 0.45, 0.6, 0.45, 0.02);
+        fx.beam(owner.getEyeLocation(), nearest.getLocation().add(0.5, 0.5, 0.5), Particle.END_ROD, null, 10);
+        fx.column(nearest.getLocation().add(0.5, 1, 0.5), 3, Particle.WAX_ON, null);
+        owner.playSound(owner.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
         start(session, key, cooldown(definition, 60), now);
         activated(owner, "treasure_whisperer");
     }
@@ -1181,6 +1227,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, player.getLocation().add(0, 1, 0),
                 50, 0.5, 0.8, 0.5, 0.1);
         player.playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 1f, 1f);
+        fx.helix(player, 0.9, 2.4, Particle.TOTEM_OF_UNDYING, null, 24);
         start(session, REFUSE_DEATH, cooldown(session, "undying", 86_400), now);
     }
 
@@ -1211,6 +1258,9 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         owner.getWorld().spawnParticle(Particle.END_ROD, owner.getLocation().add(0, 1, 0),
                 50, 0.8, 1.0, 0.8, 0.05);
         owner.playSound(owner.getLocation(), Sound.ITEM_TOTEM_USE, 1f, 0.7f);
+        owner.getWorld().playSound(owner.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.2f);
+        fx.helix(owner, 1.0, 2.6, Particle.DUST, AbilityFx.dust(0xF5D76E, 1.3f), 30);
+        fx.shockwave(owner.getLocation(), 3, Particle.END_ROD, null, 6);
         start(session, key, cooldown(title, 300), now);
         activated(owner, "ascendant");
     }
@@ -1395,6 +1445,7 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             }
         }
         owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 1f, 0.8f);
+        fx.shockwave(owner.getLocation(), radius, Particle.DUST, AbilityFx.dust(0xB02E26, 1.4f), 8);
         start(session, key, cooldown(title, 60), now);
         activated(owner, "conqueror");
     }
@@ -1436,6 +1487,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
                 25, 0.4, 0.7, 0.4, 0.1);
         owner.getWorld().spawnParticle(Particle.PORTAL, destination.clone().add(0, 1, 0),
                 35, 0.5, 0.8, 0.5, 0.1);
+        fx.beam(from.clone().add(0, 1, 0), destination.clone().add(0, 1, 0), Particle.REVERSE_PORTAL, null, 4);
+        owner.getWorld().playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.1f);
         long recharge = Math.round(definition.abilitySetting("charge-recharge-seconds", 60));
         session.cooldowns().start(charge, now, TimeUnit.SECONDS.toMillis(Math.max(1, recharge)));
         int remaining = availableVoidStepCharges(session.cooldowns(), now, charges);
@@ -1541,6 +1594,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         }
         owner.getWorld().spawnParticle(Particle.FLAME, owner.getLocation().add(0, 1, 0),
                 30, 1.0, 0.4, 1.0, 0.03);
+        fx.shockwave(owner.getLocation(), radius, Particle.FLAME, null, 7);
+        owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 0.8f);
         start(session, key, cooldown(title, 45), now);
         activated(owner, "ashborn");
     }
@@ -1561,6 +1616,8 @@ public final class TitleAbilityListener implements Listener, SessionHook {
         }
         owner.getWorld().spawnParticle(Particle.SQUID_INK, owner.getLocation().add(0, 1, 0),
                 35, 1.2, 0.6, 1.2, 0.05);
+        fx.shockwave(owner.getLocation(), title.abilitySetting("radius", 5), Particle.SMOKE, null, 7);
+        owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_WITHER_SHOOT, 0.7f, 0.9f);
         start(session, key, cooldown(title, 45), now);
         activated(owner, "witherbound");
     }
@@ -1586,8 +1643,12 @@ public final class TitleAbilityListener implements Listener, SessionHook {
             owner.setRemainingAir(owner.getMaximumAir());
             owner.getWorld().spawnParticle(Particle.BUBBLE, owner.getLocation().add(0, 1, 0),
                     24, 0.4, 0.4, 0.4, 0.1);
+            fx.trail(owner, Particle.BUBBLE, null, 12);
+            owner.getWorld().playSound(owner.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 0.8f, 1.2f);
         } else {
             owner.getWorld().spawnParticle(Particle.CLOUD, owner.getLocation(), 16, 0.3, 0.1, 0.3, 0.05);
+            fx.trail(owner, underwater ? Particle.SPLASH : Particle.FIREWORK, null, 10);
+            owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_BREEZE_WIND_BURST, 0.7f, 1.4f);
         }
         start(session, key, cooldown(title, underwater ? 30 : 25), now);
         activated(owner, id);

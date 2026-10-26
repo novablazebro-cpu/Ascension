@@ -25,6 +25,13 @@ quest-busy: "<gray>Please wait, your last action is still being saved."
 
 rank-up-self: "<green>Rank up! You are now <rank>."
 rank-up-broadcast: "<gold><player></gold> <gray>ascended to</gray> <rank><gray>!</gray>"
+# On-screen splashes for rank-ups and title level-ups.
+rank-up-title: "<gold><bold>RANK UP"
+rank-up-subtitle: "<rank>"
+mastery-title: "<light_purple><bold>MASTERY"
+mastery-subtitle: "<gold><mastery>"
+title-level-title: "<aqua><bold>LEVEL <level>"
+title-level-subtitle: "<gold><title></gold> <gray>·</gray> <white><ability>"
 rank-expired: "<red>Your rank power has expired. Complete the Renewal Quest to restore it."
 rank-renewed: "<green>Your rank and its powers have been restored for another week."
 renewal-auto-reroll: "<yellow>Your renewal hunt was unavailable for three days. A new renewal quest has been assigned."

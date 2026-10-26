@@ -20,10 +20,12 @@ import com.leadsystems.minecraft.ascension.storage.CompletionResult;
 import com.leadsystems.minecraft.ascension.storage.PlayerRepository;
 import com.leadsystems.minecraft.ascension.storage.StorageExecutor;
 import com.leadsystems.minecraft.ascension.storage.StorageHealth;
+import com.leadsystems.minecraft.ascension.text.Contrast;
 import com.leadsystems.minecraft.ascension.text.Messages;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
@@ -220,19 +222,23 @@ public final class QuestService implements SessionHook {
     private void announce(Player player, int toIndex, boolean mastery) {
         ConfigSnapshot cfg = config.get();
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, player.getLocation().add(0, 1, 0),
+                60, 0.6, 1.0, 0.6, 0.25);
         if (mastery) {
             messages.send(player, "mastery-self", Messages.ph("mastery", cfg.masteryName()));
+            messages.title(player, "mastery-title", "mastery-subtitle", Messages.ph("mastery", cfg.masteryName()));
             if (cfg.announceRankUps()) {
-                Bukkit.broadcast(messages.prefix().append(messages.get("mastery-broadcast",
-                        Messages.ph("player", player.getName()), Messages.ph("mastery", cfg.masteryName()))));
+                Bukkit.broadcast(Contrast.on(Contrast.Surface.CHAT, messages.prefix().append(messages.get("mastery-broadcast",
+                        Messages.ph("player", player.getName()), Messages.ph("mastery", cfg.masteryName())))));
             }
             return;
         }
         Component rank = Messages.rank(cfg.ladder().get(toIndex));
         messages.send(player, "rank-up-self", Messages.ph("rank", rank));
+        messages.title(player, "rank-up-title", "rank-up-subtitle", Messages.ph("rank", rank));
         if (cfg.announceRankUps()) {
-            Bukkit.broadcast(messages.prefix().append(messages.get("rank-up-broadcast",
-                    Messages.ph("player", player.getName()), Messages.ph("rank", rank))));
+            Bukkit.broadcast(Contrast.on(Contrast.Surface.CHAT, messages.prefix().append(messages.get("rank-up-broadcast",
+                    Messages.ph("player", player.getName()), Messages.ph("rank", rank)))));
         }
     }
 
