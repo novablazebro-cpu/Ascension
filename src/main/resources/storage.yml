@@ -1,0 +1,16 @@
+# ---------------------------------------------------------------------------------------------
+# Ascension - storage (changes require a full server restart)
+#
+# Paper already ships the SQLite and MySQL JDBC drivers; nothing extra needs installing.
+# MySQL/MariaDB support (for several servers sharing one database) arrives in a later release.
+# ---------------------------------------------------------------------------------------------
+
+type: sqlite
+
+sqlite:
+  # Relative to plugins/Ascension/
+  file: "data/ascension.db"
+
+backups:
+  # A copy of the database is written here before every schema migration.
+  directory: "backups"

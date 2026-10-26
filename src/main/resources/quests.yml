@@ -1,0 +1,115 @@
+# ---------------------------------------------------------------------------------------------
+# Ascension - rank quests
+#
+# One combined quest per rank stage (key = stage id from ranks.yml). A player must open their
+# Chronicle, view the quest and press "Accept Quest". Only progress made AFTER accepting counts.
+# When every objective is complete the player advances automatically.
+#
+# Objective keys (xp, hostiles, ...) are the progress ids. Renaming a key while players have that
+# quest active resets their progress on that objective.
+#
+# Objective types:
+#   gain-levels         cumulative experience levels earned after accepting the quest.
+#                       Spending or losing levels never subtracts progress; re-earned levels count.
+#   kill-mobs           targets: entity types and/or categories: [hostile, nether, illager]
+#   kill-distinct-mobs  amount = number of DIFFERENT mob types (from targets/categories)
+#   mine-blocks         natural blocks only (player-placed and lava/water-formed blocks don't count)
+#   smelt-items         items taken out of a furnace, smoker or blast furnace
+#   obtain-items        from natural sources only: mining drops, your own mob kills, loot chests,
+#                       fishing and smelting. Picking up dropped/traded items never counts.
+#   submit-items        handed in with the "Submit Item" button; the server verifies and removes them
+#   player-kills        valid PvP kills (see config.yml pvp rules); "unique" = minimum unique victims
+#   hunts               assigned-player hunts
+#   raids               raids won
+#   defeat-boss         targets: [WARDEN|WITHER|ELDER_GUARDIAN|RAVAGER]; final-hit / summoned optional
+#
+# No quest may require killing the Ender Dragon. Dragon Heads from End Ships are allowed.
+# ---------------------------------------------------------------------------------------------
+
+bronze_1:
+  objectives:
+    xp:       { type: gain-levels, amount: 30, description: "Gain 30 experience levels" }
+    hostiles: { type: kill-mobs, categories: [hostile], amount: 10, description: "Kill 10 hostile mobs" }
+    stone:    { type: mine-blocks, targets: [STONE, DEEPSLATE], amount: 32, description: "Mine 32 stone or deepslate" }
+
+bronze_2:
+  objectives:
+    xp:        { type: gain-levels, amount: 60, description: "Gain 60 experience levels" }
+    zombies:   { type: kill-mobs, targets: [ZOMBIE, HUSK, DROWNED, ZOMBIE_VILLAGER], amount: 10, description: "Kill 10 zombies" }
+    skeletons: { type: kill-mobs, targets: [SKELETON, STRAY, BOGGED], amount: 10, description: "Kill 10 skeletons" }
+    iron:      { type: smelt-items, targets: [IRON_INGOT], amount: 16, description: "Smelt 16 iron ingots" }
+
+bronze_3:
+  objectives:
+    xp:       { type: gain-levels, amount: 100, description: "Gain 100 experience levels" }
+    hostiles: { type: kill-mobs, categories: [hostile], amount: 35, description: "Kill 35 hostile mobs" }
+    diamonds: { type: obtain-items, targets: [DIAMOND], amount: 3, description: "Obtain 3 diamonds" }
+    pvp:      { type: player-kills, amount: 1, description: "Complete 1 valid player kill" }
+
+silver_1:
+  objectives:
+    xp:       { type: gain-levels, amount: 150, description: "Gain 150 experience levels" }
+    variety:  { type: kill-distinct-mobs, categories: [hostile], amount: 6, description: "Kill 6 different hostile mob types" }
+    diamonds: { type: obtain-items, targets: [DIAMOND], amount: 5, description: "Obtain 5 diamonds" }
+    hunt:     { type: hunts, amount: 1, description: "Complete 1 assigned-player hunt" }
+
+silver_2:
+  objectives:
+    xp:      { type: gain-levels, amount: 200, description: "Gain 200 experience levels" }
+    piglins: { type: kill-mobs, targets: [PIGLIN, PIGLIN_BRUTE], amount: 10, description: "Kill 10 piglins" }
+    blazes:  { type: kill-mobs, targets: [BLAZE], amount: 5, description: "Kill 5 blazes" }
+    rods:    { type: obtain-items, targets: [BLAZE_ROD], amount: 5, description: "Obtain 5 blaze rods" }
+    pvp:     { type: player-kills, amount: 2, unique: 2, description: "Kill 2 different players" }
+
+silver_3:
+  objectives:
+    xp:       { type: gain-levels, amount: 275, description: "Gain 275 experience levels" }
+    raid:     { type: raids, amount: 1, description: "Win 1 raid" }
+    hostiles: { type: kill-mobs, categories: [hostile], amount: 75, description: "Kill 75 hostile mobs" }
+    hunts:    { type: hunts, amount: 2, description: "Complete 2 assigned-player hunts" }
+
+gold_1:
+  objectives:
+    xp:       { type: gain-levels, amount: 350, description: "Gain 350 experience levels" }
+    ravager:  { type: kill-mobs, targets: [RAVAGER], amount: 1, description: "Kill 1 ravager" }
+    illagers: { type: kill-mobs, categories: [illager], amount: 15, description: "Kill 15 illagers" }
+    debris:   { type: mine-blocks, targets: [ANCIENT_DEBRIS], amount: 4, description: "Mine 4 Ancient Debris" }
+    pvp:      { type: player-kills, amount: 5, unique: 3, description: "Kill 5 players (at least 3 different)" }
+
+gold_2:
+  objectives:
+    xp:      { type: gain-levels, amount: 425, description: "Gain 425 experience levels" }
+    elder:   { type: defeat-boss, targets: [ELDER_GUARDIAN], amount: 1, description: "Defeat an Elder Guardian" }
+    blazes:  { type: kill-mobs, targets: [BLAZE], amount: 10, description: "Kill 10 blazes" }
+    withers: { type: kill-mobs, targets: [WITHER_SKELETON], amount: 5, description: "Kill 5 wither skeletons" }
+    hunts:   { type: hunts, amount: 2, description: "Complete 2 assigned-player hunts" }
+
+gold_3:
+  objectives:
+    xp:     { type: gain-levels, amount: 500, description: "Gain 500 experience levels" }
+    warden: { type: defeat-boss, targets: [WARDEN], amount: 1, final-hit: true, description: "Kill a Warden (land the final hit)" }
+    head:   { type: submit-items, targets: [DRAGON_HEAD], amount: 1, description: "Submit 1 Dragon Head" }
+    pvp:    { type: player-kills, amount: 10, unique: 5, description: "Kill 10 players (at least 5 different)" }
+
+platinum_1:
+  objectives:
+    xp:     { type: gain-levels, amount: 600, description: "Gain 600 experience levels" }
+    wither: { type: defeat-boss, targets: [WITHER], amount: 1, summoned: true, description: "Summon and defeat a Wither" }
+    raids:  { type: raids, amount: 2, description: "Win 2 raids" }
+    hunts:  { type: hunts, amount: 3, description: "Complete 3 assigned-player hunts" }
+
+platinum_2:
+  objectives:
+    xp:     { type: gain-levels, amount: 675, description: "Gain 675 experience levels" }
+    warden: { type: defeat-boss, targets: [WARDEN], amount: 1, final-hit: true, description: "Kill a Warden (land the final hit)" }
+    heads:  { type: submit-items, targets: [DRAGON_HEAD], amount: 2, description: "Submit 2 Dragon Heads" }
+    pvp:    { type: player-kills, amount: 20, unique: 10, description: "Kill 20 players (at least 10 different)" }
+
+platinum_3:
+  objectives:
+    xp:       { type: gain-levels, amount: 750, description: "Gain 750 experience levels" }
+    hostiles: { type: kill-mobs, categories: [hostile], amount: 500, description: "Kill 500 hostile mobs" }
+    warden:   { type: defeat-boss, targets: [WARDEN], amount: 1, description: "Defeat a Warden" }
+    wither:   { type: defeat-boss, targets: [WITHER], amount: 1, description: "Defeat a Wither" }
+    elder:    { type: defeat-boss, targets: [ELDER_GUARDIAN], amount: 1, description: "Defeat an Elder Guardian" }
+    hunts:    { type: hunts, amount: 5, description: "Complete 5 assigned-player hunts" }

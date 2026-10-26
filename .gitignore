@@ -1,0 +1,8 @@
+/.gradle/
+/build/
+*.db
+*.db-shm
+*.db-wal
+*.log
+__pycache__/
+.DS_Store

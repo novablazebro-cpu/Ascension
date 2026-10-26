@@ -1,0 +1,117 @@
+# ---------------------------------------------------------------------------------------------
+# Ascension - main settings
+#
+# Apply changes with /titles reload (invalid files are rejected and the old config stays active).
+# storage.yml changes need a full server restart. Never use Bukkit's /reload with this plugin.
+# ---------------------------------------------------------------------------------------------
+
+# Time zone for daily deathless-streak days. "server" = the machine's zone, or e.g. "Asia/Kolkata".
+timezone: server
+
+# How often batched progress (kills, levels, statistics, short cooldowns) is saved, in seconds.
+# Quest accepts, rank-ups, title claims, item submissions and book changes are saved immediately.
+flush-interval-seconds: 30
+
+# Full unlocked testing mode. Players may select any rank with /rank test <tier> <stage>
+# and equip any title while every normal plugin system remains active.
+# Set this to false when you want ownership and progression locks enforced normally.
+testing:
+  unlock-all-ranks-and-titles: false
+
+# Owner-bound relic issued for titles with a manual ability. Existing tagged ability sticks are
+# automatically replaced on the next inventory reconciliation.
+activation-item:
+  material: AMETHYST_SHARD
+  display-name: "Ascension Relic"
+  glint: true
+
+book:
+  title: "Chronicle of Ascension"
+  author: "Ascension"
+  # Minimum time between two menu opens (stops one right-click opening the menu twice).
+  open-cooldown-ms: 400
+  # Safety-net inventory check: how many online players are examined per second.
+  sweep-players-per-second: 2
+
+progress:
+  # Creative and spectator players never make progress.
+  ignore-creative-and-spectator: true
+  # Show "Kill 10 hostile mobs 4/10" on the action bar whenever an objective advances.
+  action-bar-updates: true
+  # Count mobs from monster spawners (mob farms) toward kill objectives.
+  count-spawner-mobs: true
+  # "hostile" = every hostile (Enemy) mob, plus hostile-extra, minus hostile-exclude.
+  hostile-extra: []
+  hostile-exclude: [ENDER_DRAGON]
+  nether-mobs: [BLAZE, GHAST, MAGMA_CUBE, PIGLIN, PIGLIN_BRUTE, ZOMBIFIED_PIGLIN, HOGLIN, ZOGLIN, WITHER_SKELETON]
+  # Blocks remembered when a player places them (or lava/water forms them), so mining them again
+  # never counts and their drops never count as "obtained". Quest mine-blocks targets are added
+  # automatically.
+  tracked-placed-blocks:
+    - STONE
+    - DEEPSLATE
+    - ANCIENT_DEBRIS
+    - COAL_ORE
+    - DEEPSLATE_COAL_ORE
+    - IRON_ORE
+    - DEEPSLATE_IRON_ORE
+    - COPPER_ORE
+    - DEEPSLATE_COPPER_ORE
+    - GOLD_ORE
+    - DEEPSLATE_GOLD_ORE
+    - REDSTONE_ORE
+    - DEEPSLATE_REDSTONE_ORE
+    - LAPIS_ORE
+    - DEEPSLATE_LAPIS_ORE
+    - DIAMOND_ORE
+    - DEEPSLATE_DIAMOND_ORE
+    - EMERALD_ORE
+    - DEEPSLATE_EMERALD_ORE
+    - NETHER_GOLD_ORE
+    - NETHER_QUARTZ_ORE
+  # Natural acquisitions also used by title eligibility (quest targets are added automatically).
+  tracked-obtain-items:
+    - ELYTRA
+    - DRAGON_HEAD
+
+gestures:
+  # Two crouches within this many milliseconds count as a double-crouch.
+  double-crouch-window-ms: 400
+  # Minimum downward head pitch (degrees, 90 = straight down) for look-down-crouch abilities.
+  look-down-min-pitch: 75
+
+combat:
+  # Seconds without fighting before "entering combat" can trigger again.
+  window-seconds: 10
+  # A killer cannot receive progress from the same victim again before this many hours.
+  same-victim-cooldown-hours: 24
+  # The killer must personally deal at least this fraction of the victim's tracked damage.
+  minimum-participation: 0.25
+  # Accounts with the same stored IP hash do not grant PvP progress to each other.
+  reject-same-ip: true
+
+hunts:
+  # Permit reroll after the assigned target has not been seen for this many hours.
+  reroll-offline-hours: 24
+  # Prefer not to assign a target completed within this many days.
+  repeat-avoidance-days: 30
+
+deathless:
+  required-active-minutes-per-day: 30
+  # Online players count only while they have moved or interacted within this window.
+  activity-timeout-minutes: 5
+
+title-abilities:
+  stormbringer:
+    range: 50.0
+    damage-health-points: 6.0
+  # Bloodlord lifesteal-ratio is configured in titles.yml.
+  bloodlord:
+    max-heal-health-points: 3.0
+  undying:
+    surviving-health-points: 1.0
+    immunity-seconds: 3
+
+effects:
+  # Show potion particles for effects applied by Ascension.
+  particles: false

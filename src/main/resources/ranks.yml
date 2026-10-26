@@ -1,0 +1,34 @@
+# ---------------------------------------------------------------------------------------------
+# Ascension - rank ladder
+#
+# Stages are climbed in this exact order. New players start at the first stage.
+# Each stage has one combined quest (quests.yml, same id) and one ability package
+# (abilities.yml -> rank-abilities, key given by "ability").
+# Completing the last stage's quest grants "mastery" instead of another stage.
+#
+# Changing stage ids after players have progressed is NOT supported (progress is stored by
+# stage index). Names, colors and abilities can be changed freely and applied with /titles reload.
+# ---------------------------------------------------------------------------------------------
+
+# Only the current stage's ability package applies. Set true to also keep lower stages' packages.
+stack-previous-abilities: false
+
+# Broadcast rank-ups to the whole server.
+announce-rank-ups: true
+
+# Display name for players who completed the last stage's quest.
+mastery-name: "Platinum Mastery"
+
+stages:
+  - { id: bronze_1,   name: "Bronze I",     tier: bronze,   stage: 1, color: "#cd7f32", ability: bronze_1 }
+  - { id: bronze_2,   name: "Bronze II",    tier: bronze,   stage: 2, color: "#cd7f32", ability: bronze_2 }
+  - { id: bronze_3,   name: "Bronze III",   tier: bronze,   stage: 3, color: "#cd7f32", ability: bronze_3 }
+  - { id: silver_1,   name: "Silver I",     tier: silver,   stage: 1, color: "#c0c0c0", ability: silver_1 }
+  - { id: silver_2,   name: "Silver II",    tier: silver,   stage: 2, color: "#c0c0c0", ability: silver_2 }
+  - { id: silver_3,   name: "Silver III",   tier: silver,   stage: 3, color: "#c0c0c0", ability: silver_3 }
+  - { id: gold_1,     name: "Gold I",       tier: gold,     stage: 1, color: "#ffd700", ability: gold_1 }
+  - { id: gold_2,     name: "Gold II",      tier: gold,     stage: 2, color: "#ffd700", ability: gold_2 }
+  - { id: gold_3,     name: "Gold III",     tier: gold,     stage: 3, color: "#ffd700", ability: gold_3 }
+  - { id: platinum_1, name: "Platinum I",   tier: platinum, stage: 1, color: "#7fe5f0", ability: platinum_1 }
+  - { id: platinum_2, name: "Platinum II",  tier: platinum, stage: 2, color: "#7fe5f0", ability: platinum_2 }
+  - { id: platinum_3, name: "Platinum III", tier: platinum, stage: 3, color: "#7fe5f0", ability: platinum_3 }

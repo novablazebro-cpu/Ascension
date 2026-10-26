@@ -1,0 +1,9 @@
+# ---------------------------------------------------------------------------------------------
+# Ascension - optional integrations
+#
+# Every integration is optional; Ascension works with none of these installed.
+# ---------------------------------------------------------------------------------------------
+
+floodgate:
+  # Show Bedrock players native forms instead of chest menus (needs Floodgate).
+  bedrock-forms: true

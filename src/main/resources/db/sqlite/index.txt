@@ -1,0 +1,13 @@
+# Applied in order. Never edit or reorder an applied migration; add a new V{n} file instead.
+V1__core.sql
+V2__rank_runtime.sql
+V3__submissions.sql
+V4__hunts.sql
+V5__titles.sql
+V6__deathless.sql
+V7__unique_locations.sql
+V8__title_rebalance.sql
+V9__rank_renewals.sql
+V10__renewal_target_absence.sql
+V11__market.sql
+V12__dynamic_shop.sql

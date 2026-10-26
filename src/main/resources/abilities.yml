@@ -1,0 +1,81 @@
+# ---------------------------------------------------------------------------------------------
+# Ascension - abilities
+#
+# rank-abilities: one package per rank stage (referenced by "ability" in ranks.yml).
+# Effects are written effect:level, where level 1 = "I" (haste:1 = Haste I, speed:2 = Speed II).
+# Effect names are Minecraft keys: haste, speed, resistance, strength, regeneration, night_vision...
+#
+# Component types:
+#   effect-pulse      effects for duration-seconds, once every interval-seconds
+#                     ("X s followed by a Y s cooldown" = duration X, interval X+Y)
+#   permanent-effect  effects kept on while at this stage (re-applied after milk/death/totem)
+#   triggered-effect  effects when a trigger fires, then cooldown-seconds. Triggers:
+#                       damage-taken, attack-mob, low-health (red + absorption hearts / current max health),
+#                       combat-enter, pvp-kill, look-down-crouch (crouch while looking straight down)
+#   health-bonus      extra max health in health points (2 = one heart)
+#
+# Plugin effects never replace a stronger or longer effect the player already has, and only
+# effects applied by Ascension are removed when the rank changes.
+# ---------------------------------------------------------------------------------------------
+
+rank-abilities:
+  bronze_1:
+    description: "Haste I for 5 seconds every 25 seconds"
+    components:
+      - { type: effect-pulse, effects: ["haste:1"], duration-seconds: 5, interval-seconds: 25 }
+
+  bronze_2:
+    description: "Speed I for 5 seconds every 20 seconds"
+    components:
+      - { type: effect-pulse, effects: ["speed:1"], duration-seconds: 5, interval-seconds: 20 }
+
+  bronze_3:
+    description: "Resistance I for 3 seconds after taking damage (30 s cooldown)"
+    components:
+      - { type: triggered-effect, trigger: damage-taken, effects: ["resistance:1"], duration-seconds: 3, cooldown-seconds: 30 }
+
+  silver_1:
+    description: "Permanent Night Vision (no particles)"
+    components:
+      - { type: permanent-effect, effects: ["night_vision:1"] }
+
+  silver_2:
+    description: "Haste I for 10 seconds, then a 15-second cooldown"
+    components:
+      - { type: effect-pulse, effects: ["haste:1"], duration-seconds: 10, interval-seconds: 25 }
+
+  silver_3:
+    description: "Strength I for 3 seconds after hitting a hostile mob (20 s cooldown)"
+    components:
+      - { type: triggered-effect, trigger: attack-mob, effects: ["strength:1"], duration-seconds: 3, cooldown-seconds: 20 }
+
+  gold_1:
+    description: "Speed I for 10 seconds, then a 10-second cooldown"
+    components:
+      - { type: effect-pulse, effects: ["speed:1"], duration-seconds: 10, interval-seconds: 20 }
+
+  gold_2:
+    description: "Regeneration I for 5 seconds below 40% effective health (45 s cooldown)"
+    components:
+      - { type: triggered-effect, trigger: low-health, threshold: 0.4, effects: ["regeneration:1"], duration-seconds: 5, cooldown-seconds: 45 }
+
+  gold_3:
+    description: "Resistance I for 6 seconds when entering combat (35 s cooldown)"
+    components:
+      - { type: triggered-effect, trigger: combat-enter, effects: ["resistance:1"], duration-seconds: 6, cooldown-seconds: 35 }
+
+  platinum_1:
+    description: "Strength I for 5 seconds after a valid player kill (30 s cooldown)"
+    components:
+      - { type: triggered-effect, trigger: pvp-kill, effects: ["strength:1"], duration-seconds: 5, cooldown-seconds: 30 }
+
+  platinum_2:
+    description: "Speed I and Haste I for 10 seconds, then a 15-second cooldown"
+    components:
+      - { type: effect-pulse, effects: ["speed:1", "haste:1"], duration-seconds: 10, interval-seconds: 25 }
+
+  platinum_3:
+    description: "+1 heart; crouch while looking down for Resistance I (10 s, 60 s cooldown)"
+    components:
+      - { type: health-bonus, amount: 2.0 }
+      - { type: triggered-effect, trigger: look-down-crouch, effects: ["resistance:1"], duration-seconds: 10, cooldown-seconds: 60 }

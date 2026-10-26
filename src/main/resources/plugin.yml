@@ -1,0 +1,120 @@
+name: Ascension
+version: '${version}'
+main: com.leadsystems.minecraft.ascension.AscensionPlugin
+api-version: '${apiVersion}'
+description: Rank quests, the Chronicle of Ascension book, and globally exclusive titles for Java + Bedrock SMPs.
+author: Ayush Anand
+softdepend: [floodgate, Geyser-Spigot, WorldGuard, PlaceholderAPI, LuckPerms]
+
+commands:
+  rank:
+    description: Open your Chronicle, show quest progress and the rank ladder; admin rank tools.
+    usage: /rank [progress|quests|target|test|set|advance|reset|quest]
+  titles:
+    description: Open the titles page; admin reload, debug and audit tools.
+    usage: /titles [reload|debug <player>|audit [count]]
+  title:
+    description: Player title controls and audited administrator ownership recovery tools.
+    usage: /title <claim|equip|unequip|info|owner|give|revoke|transfer|reset|cooldown> ...
+  titlebook:
+    description: Get your Chronicle of Ascension back if it is missing; admin reissue.
+    usage: /titlebook [give <player>]
+  auction:
+    description: Player auctions, demand-priced server shop, currency exchange and deliveries.
+    aliases: [ah, market]
+    usage: /auction [buy|sell|mine|collect|shop|exchange]
+
+permissions:
+  ascension.player:
+    description: Every player feature of Ascension.
+    default: true
+    children:
+      ascension.rank: true
+      ascension.rank.target: true
+      ascension.titles: true
+      ascension.titlebook: true
+      ascension.market: true
+  ascension.rank:
+    description: /rank, /rank progress and /rank quests for yourself.
+    default: true
+  ascension.rank.target:
+    description: /rank target and /rank target reroll for yourself.
+    default: true
+  ascension.titles:
+    description: /titles and /title player features.
+    default: true
+  ascension.titlebook:
+    description: /titlebook (recover your own Chronicle).
+    default: true
+  ascension.market:
+    description: Auctions, server shop and currency exchange in the Chronicle.
+    default: true
+
+  ascension.admin:
+    description: Every administrative Ascension command.
+    default: op
+    children:
+      ascension.admin.rank.set: true
+      ascension.admin.rank.advance: true
+      ascension.admin.rank.reset: true
+      ascension.admin.rank.progress: true
+      ascension.admin.rank.quest: true
+      ascension.admin.rank.target: true
+      ascension.admin.title.give: true
+      ascension.admin.title.revoke: true
+      ascension.admin.title.transfer: true
+      ascension.admin.title.reset: true
+      ascension.admin.title.cooldown: true
+      ascension.admin.titlebook.give: true
+      ascension.admin.reload: true
+      ascension.admin.debug: true
+      ascension.admin.audit: true
+      ascension.admin.market: true
+  ascension.admin.rank.set:
+    description: /rank set <player> <rank> <stage>
+    default: op
+  ascension.admin.rank.advance:
+    description: /rank advance <player>
+    default: op
+  ascension.admin.rank.reset:
+    description: /rank reset <player>
+    default: op
+  ascension.admin.rank.progress:
+    description: /rank progress <player>
+    default: op
+  ascension.admin.rank.quest:
+    description: /rank quest complete <player> <objective>
+    default: op
+  ascension.admin.rank.target:
+    description: /rank target set|reroll|cancel administrator controls
+    default: op
+  ascension.admin.title.give:
+    description: /title give <player> <title>
+    default: op
+  ascension.admin.title.revoke:
+    description: /title revoke <title>
+    default: op
+  ascension.admin.title.transfer:
+    description: /title transfer <title> <player>
+    default: op
+  ascension.admin.title.reset:
+    description: /title reset <player>
+    default: op
+  ascension.admin.title.cooldown:
+    description: /title cooldown reset <player> [title]
+    default: op
+  ascension.admin.titlebook.give:
+    description: /titlebook give <player> (invalidate all copies and reissue)
+    default: op
+  ascension.admin.reload:
+    description: /titles reload
+    default: op
+  ascension.admin.debug:
+    description: /titles debug <player>
+    default: op
+  ascension.admin.audit:
+    description: /titles audit [count]
+    default: op
+  ascension.admin.market:
+    description: Inspect and resolve interrupted inventory transactions with /auction.
+    default: op

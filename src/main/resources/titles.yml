@@ -1,0 +1,595 @@
+# ---------------------------------------------------------------------------------------------
+# Ascension - globally exclusive titles
+#
+# Titles are ordered from hardest (#1) to easiest (#30). A player may own at most five titles,
+# and ownership is never released merely because the owner is offline.
+#
+# Requirement types:
+#   stat:    keys (lifetime stat keys), amount, label
+#   rank:    rank-index (0-based ladder index), mastery, label
+#   possess: material, optional enchantment, label (checked at claim time)
+#   streak:  days, label (best deathless streak)
+#
+# Eligibility counters are produced by validated server events. End City progress is deduplicated
+# by generated-structure identity rather than by chest count.
+# ---------------------------------------------------------------------------------------------
+
+ownership-limit: 5
+inactivity-release:
+  enabled: false
+
+titles:
+  - id: ascendant
+    number: 1
+    name: Ascendant
+    color: "#f5d76e"
+    description: "The summit of rank, combat, hunting, bosses, and endurance."
+    requirements:
+      - type: rank
+        rank-index: 11
+        mastery: true
+        label: "Complete Platinum mastery"
+      - type: stat
+        keys: [hunts]
+        amount: 100
+        label: "Complete 100 assigned hunts"
+      - type: stat
+        keys: [pvp.kills]
+        amount: 500
+        label: "Complete 500 valid player kills"
+      - type: stat
+        keys: [bosses.WARDEN, bosses.WITHER, bosses.ELDER_GUARDIAN]
+        amount: 6
+        label: "Defeat multiple Wardens, Withers, and Elder Guardians"
+      - type: streak
+        days: 50
+        label: "Reach a 50-day deathless streak"
+    ability:
+      name: Ascension
+      description: "Right-click the Ascension Relic for Strength V, Speed III and Resistance IV for 30 seconds."
+      cooldown-seconds: 300
+      settings: { buff-duration-seconds: 30.0, strength-level: 5.0, speed-level: 3.0, resistance-level: 4.0 }
+    auto-award: false
+
+  - id: conqueror
+    number: 2
+    name: Conqueror
+    color: "#d9485f"
+    description: "A master of the final rank and assigned hunts."
+    requirements:
+      - type: rank
+        rank-index: 11
+        mastery: true
+        label: "Complete Platinum mastery"
+      - type: stat
+        keys: [hunts]
+        amount: 50
+        label: "Complete 50 assigned hunts"
+    ability:
+      name: War Cry
+      description: "Right-click the Ascension Relic to gain Strength and give nearby players and hostile mobs Weakness II and Slowness IV."
+      cooldown-seconds: 60
+      settings: { radius: 10.0, duration-seconds: 8.0, weakness-level: 2.0, slowness-level: 4.0 }
+    auto-award: false
+
+  - id: stormbringer
+    number: 3
+    name: Thunder God
+    color: "#7aa7ff"
+    description: "A Platinum master who commands the storm."
+    requirements:
+      - type: rank
+        rank-index: 11
+        mastery: true
+        label: "Complete Platinum III and mastery"
+      - type: stat
+        keys: [bosses.WARDEN]
+        amount: 1
+        label: "Defeat a Warden"
+      - type: stat
+        keys: [submitted.DRAGON_HEAD]
+        amount: 1
+        label: "Submit a Dragon Head"
+      - type: stat
+        keys: [pvp.kills]
+        amount: 100
+        label: "Complete 100 valid player kills"
+    ability:
+      name: Heaven's Judgment
+      description: "Right-click the Ascension Relic to strike the closest eligible player within 50 blocks for 13 hearts of raw damage. Armor and protection still apply."
+      cooldown-seconds: 35
+      settings: { player-damage-health-points: 26.0 }
+    auto-award: false
+
+  - id: tempest_herald
+    number: 4
+    name: Tempest Herald
+    color: "#6ec6ff"
+    description: "A storm hunter armed with a channeling trident."
+    requirements:
+      - type: possess
+        material: TRIDENT
+        enchantment: channeling
+        label: "Possess a Channeling Trident"
+      - type: stat
+        keys: [pvp.storm_kills]
+        amount: 25
+        label: "Complete 25 storm kills"
+    ability:
+      name: Chain Lightning
+      description: "Look at a target and right-click the Ascension Relic to chain lightning."
+      cooldown-seconds: 45
+      settings: { range: 20.0, chain-range: 8.0, combat-damage-health-points: 8.0, chain-multiplier: 1.0 }
+    auto-award: false
+
+  - id: voidwalker
+    number: 5
+    name: Voidwalker
+    color: "#8d74d6"
+    description: "A traveler who has conquered the End."
+    requirements:
+      - type: stat
+        keys: [loot.end_cities]
+        amount: 5
+        label: "Loot five End City containers"
+    ability:
+      name: Void Step
+      description: "Point at a safe landing spot and right-click the Ascension Relic to teleport. Three charges; each returns after 60 seconds."
+      cooldown-seconds: 60
+      settings: { aim-range: 32.0, charge-recharge-seconds: 60.0 }
+    auto-award: false
+
+  - id: bloodlord
+    number: 6
+    name: Bloodlord
+    color: "#b52b3b"
+    description: "A feared champion of player combat."
+    requirements:
+      - type: stat
+        keys: [pvp.kills]
+        amount: 200
+        label: "Complete 200 valid player kills"
+    ability:
+      name: Vampire
+      description: "Every damaging hit against a mob or eligible PvP player heals 20% of final damage, up to 3 HP per hit. No relic or cooldown required."
+      cooldown-seconds: 0
+      settings: { lifesteal-ratio: 0.2 }
+    auto-award: false
+
+  - id: chronomancer
+    number: 7
+    name: Chronomancer
+    color: "#9aa7c7"
+    description: "A survivor who can undo a moment in combat."
+    requirements:
+      - type: stat
+        keys: [pvp.nighttime_kills]
+        amount: 100
+        label: "Complete 100 valid nighttime player kills"
+    ability:
+      name: Rewind
+      description: "Right-click the Ascension Relic to save your position and health, then click again within 3 seconds to rewind."
+      cooldown-seconds: 120
+      settings: { window-seconds: 3.0 }
+    auto-award: false
+
+  - id: titan
+    number: 8
+    name: Titan
+    color: "#c58b52"
+    description: "A Platinum warrior who has faced the strongest bosses."
+    requirements:
+      - type: rank
+        rank-index: 11
+        mastery: false
+        label: "Reach Platinum"
+      - type: stat
+        keys: [bosses.WARDEN]
+        amount: 2
+        label: "Defeat multiple Wardens"
+      - type: stat
+        keys: [bosses.WITHER]
+        amount: 2
+        label: "Defeat multiple Withers"
+    ability:
+      name: Ground Slam
+      description: "Right-click the Ascension Relic to slam eligible targets within 3 blocks for 13 hearts of raw damage and knockback. Armor and protection still apply."
+      cooldown-seconds: 30
+      settings: { radius: 3.0, combat-damage-health-points: 26.0, knockback: 1.4 }
+    auto-award: false
+
+  - id: undying
+    number: 9
+    name: Undying
+    color: "#f2c94c"
+    description: "The first player to maintain a 25-day deathless streak."
+    requirements:
+      - type: streak
+        days: 25
+        label: "Be the first player to complete a 25-day deathless streak"
+    ability:
+      name: Refuse Death
+      description: "Survive one otherwise fatal attack, with a 24-hour cooldown."
+      cooldown-seconds: 86400
+    auto-award: true
+
+  - id: end_city_conqueror
+    number: 10
+    name: End City Conqueror
+    color: "#d7b8ff"
+    description: "A looter of the End's rarest treasures."
+    requirements:
+      - type: stat
+        keys: [loot.end_city.ELYTRA]
+        amount: 1
+        label: "Obtain an Elytra from an End structure"
+      - type: stat
+        keys: [loot.end_city.DRAGON_HEAD]
+        amount: 1
+        label: "Obtain a Dragon Head from an End structure"
+    ability:
+      name: Sky Rescue
+      description: "Prevent dangerous fall damage, gain Slow Falling, then Speed II for 2 seconds on landing."
+      cooldown-seconds: 45
+      settings: { minimum-fall-distance: 6.0, slow-falling-seconds: 5.0, landing-speed-seconds: 2.0 }
+    auto-award: false
+
+  - id: wardens_bane
+    number: 11
+    name: Warden's Bane
+    color: "#34495e"
+    description: "A hunter who survives the deep dark and earns the final blow."
+    requirements:
+      - type: stat
+        keys: [bosses.WARDEN]
+        amount: 1
+        label: "Kill a Warden after dealing at least 25% of its health"
+    ability:
+      name: Sonic Ward
+      description: "Greatly reduce a sonic boom or halve one incoming hit of at least 8 hearts."
+      cooldown-seconds: 60
+      settings: { damage-multiplier: 0.2, heavy-hit-threshold-health-points: 16.0, heavy-hit-multiplier: 0.5 }
+    auto-award: false
+
+  - id: frostbound
+    number: 12
+    name: Frostbound
+    color: "#8ad8ff"
+    description: "A hunter who freezes enemies in place."
+    requirements:
+      - type: stat
+        keys: [loot.ancient_city_containers]
+        amount: 10
+        label: "Loot 10 Ancient City containers"
+      - type: stat
+        keys: [kills.hostile]
+        amount: 250
+        label: "Kill 250 hostile mobs"
+    ability:
+      name: Frost Nova
+      description: "Right-click the Ascension Relic to deal 6 damage and apply Slowness II to nearby enemies."
+      cooldown-seconds: 45
+      settings: { radius: 5.0, damage-health-points: 6.0, slow-level: 2.0, slow-seconds: 4.0 }
+    auto-award: false
+
+  - id: witherbound
+    number: 13
+    name: Witherbound
+    color: "#6b4f71"
+    description: "A survivor of repeated Wither battles."
+    requirements:
+      - type: stat
+        keys: [bosses.WITHER]
+        amount: 3
+        label: "Defeat 3 Withers"
+    ability:
+      name: Corruption Purge
+      description: "Right-click the Ascension Relic to clear Wither and pulse damage to nearby eligible players and hostile mobs."
+      cooldown-seconds: 45
+      settings: { radius: 5.0, combat-damage-health-points: 9.0 }
+    auto-award: false
+
+  - id: soul_reaper
+    number: 14
+    name: Soul Reaper
+    color: "#704f8f"
+    description: "A relentless reaper of mobs and players."
+    requirements:
+      - type: stat
+        keys: [kills.hostile]
+        amount: 1500
+        label: "Kill 1,500 hostile mobs"
+      - type: stat
+        keys: [pvp.kills]
+        amount: 50
+        label: "Complete 50 valid player kills"
+    ability:
+      name: Soul Storage
+      description: "Valid kills store souls; right-click the Ascension Relic to consume one and heal."
+      cooldown-seconds: 20
+      settings: { maximum-souls: 10.0, heal-health-points: 4.0 }
+    auto-award: false
+
+  - id: bounty_hunter
+    number: 15
+    name: Bounty Hunter
+    color: "#d99a2b"
+    description: "A proven tracker of assigned targets."
+    requirements:
+      - type: stat
+        keys: [hunts]
+        amount: 10
+        label: "Complete 10 assigned hunts"
+    ability:
+      name: Hunter's Sense
+      description: "Right-click the Ascension Relic to reveal a nearby assigned target."
+      cooldown-seconds: 45
+      settings: { range: 50.0, duration-seconds: 5.0 }
+    auto-award: false
+
+  - id: raidbreaker
+    number: 16
+    name: Raidbreaker
+    color: "#8e5a3c"
+    description: "A defender who has broken ten raids."
+    requirements:
+      - type: stat
+        keys: [raids]
+        amount: 10
+        label: "Complete 10 raids"
+    ability:
+      name: Repulsion Wave
+      description: "Right-click the Ascension Relic to repel eligible players, raiders during a raid, or grouped hostile mobs outside raids."
+      cooldown-seconds: 35
+      settings: { radius: 8.0, combat-damage-health-points: 8.0, illager-damage-health-points: 12.0, knockback: 1.2, raid-strength-seconds: 8.0 }
+    auto-award: false
+
+  - id: tideborn
+    number: 17
+    name: Tideborn
+    color: "#26a6a1"
+    description: "A champion of ocean monuments and conduit power."
+    requirements:
+      - type: stat
+        keys: [bosses.ELDER_GUARDIAN]
+        amount: 1
+        label: "Defeat an Elder Guardian"
+      - type: stat
+        keys: [conduits.activated]
+        amount: 1
+        label: "Activate a Conduit"
+    ability:
+      name: Tidal Rush
+      description: "Right-click the Ascension Relic to rush underwater and restore oxygen, or dash at half strength on land."
+      cooldown-seconds: 30
+      settings: { horizontal-force: 1.8, land-force-multiplier: 0.5, vertical-force: 0.25 }
+    auto-award: false
+
+  - id: beastbane
+    number: 18
+    name: Beastbane
+    color: "#c0392b"
+    description: "A veteran slayer of hostile mobs."
+    requirements:
+      - type: stat
+        keys: [kills.hostile]
+        amount: 1000
+        label: "Kill 1,000 hostile mobs"
+    ability:
+      name: Executioner
+      description: "Automatically strike a hostile mob or eligible player at 8 effective HP or less for 14 damage."
+      cooldown-seconds: 15
+      settings: { health-threshold-health-points: 8.0, execute-damage-health-points: 14.0 }
+    auto-award: false
+
+  - id: emberforge
+    number: 19
+    name: Emberforge
+    color: "#e67e22"
+    description: "A smith whose strikes burn like molten metal."
+    requirements:
+      - type: stat
+        keys: [anvil.operations]
+        amount: 100
+        label: "Repair or combine 100 items"
+      - type: stat
+        keys: [kills.nether]
+        amount: 100
+        label: "Kill 100 Nether mobs"
+    ability:
+      name: Molten Edge
+      description: "Right-click the Ascension Relic for 8 seconds of +5 attack damage and Fire Aspect II."
+      cooldown-seconds: 60
+      settings: { duration-seconds: 8.0, bonus-damage-health-points: 5.0, fire-seconds: 8.0 }
+    auto-award: false
+
+  - id: alchemist
+    number: 20
+    name: Alchemist
+    color: "#8e44ad"
+    description: "A brewer of a hundred potions."
+    requirements:
+      - type: stat
+        keys: [potions.brewed]
+        amount: 100
+        label: "Brew 100 potions"
+    ability:
+      name: Catalyst
+      description: "Thrown potions last longer and splash across a wider area without duplicating effects."
+      cooldown-seconds: 10
+      settings: { duration-multiplier: 1.25, splash-radius: 5.0 }
+    auto-award: false
+
+  - id: treasure_whisperer
+    number: 21
+    name: Treasure Whisperer
+    color: "#f1c40f"
+    description: "A finder of naturally generated treasures."
+    requirements:
+      - type: stat
+        keys: [loot.structure_containers]
+        amount: 30
+        label: "Open 30 naturally generated loot containers"
+    ability:
+      name: Treasure Pulse
+      description: "Right-click the Ascension Relic to highlight nearby treasure; eligible natural containers may grant one bonus treasure roll."
+      cooldown-seconds: 60
+      settings: { range: 16.0, bonus-chance: 0.05 }
+    auto-award: false
+
+  - id: berserker
+    number: 22
+    name: Berserker
+    color: "#e74c3c"
+    description: "A fighter whose recent wounds fuel stronger attacks."
+    requirements:
+      - type: stat
+        keys: [pvp.kills]
+        amount: 25
+        label: "Complete 25 valid player kills"
+    ability:
+      name: Rage
+      description: "Automatically gain up to 6 bonus damage from health recently lost; rage fades over 10 seconds."
+      cooldown-seconds: 0
+      settings: { decay-seconds: 10.0, health-lost-per-bonus-damage: 2.0, maximum-bonus-damage: 6.0 }
+    auto-award: false
+
+  - id: colossus
+    number: 23
+    name: Colossus
+    color: "#95a5a6"
+    description: "An immovable defender with two additional hearts."
+    requirements:
+      - type: stat
+        keys: [raids]
+        amount: 3
+        label: "Complete 3 raids"
+    ability:
+      name: Giant Heart
+      description: "While equipped, permanently gain two extra maximum hearts. No stick required."
+      cooldown-seconds: 0
+      settings: { bonus-max-health-points: 4.0 }
+    auto-award: false
+
+  - id: ashborn
+    number: 24
+    name: Ashborn
+    color: "#d35400"
+    description: "A survivor of a hundred Nether battles."
+    requirements:
+      - type: stat
+        keys: [kills.nether]
+        amount: 100
+        label: "Kill 100 Nether mobs"
+    ability:
+      name: Flame Purge
+      description: "Right-click the Ascension Relic to extinguish yourself, damage nearby enemies and ignite them for 4 seconds."
+      cooldown-seconds: 45
+      settings: { radius: 5.0, combat-damage-health-points: 8.0, burn-seconds: 4.0 }
+    auto-award: false
+
+  - id: trailblazer
+    number: 25
+    name: Trailblazer
+    color: "#27ae60"
+    description: "A traveler who has crossed a great distance."
+    requirements:
+      - type: stat
+        keys: [travel.blocks]
+        amount: 25000
+        label: "Travel 25,000 blocks"
+    ability:
+      name: Dash
+      description: "Right-click the Ascension Relic to dash safely forward."
+      cooldown-seconds: 25
+      settings: { horizontal-force: 1.6, vertical-force: 0.25 }
+    auto-award: false
+
+  - id: angler
+    number: 26
+    name: Angler
+    color: "#3498db"
+    description: "A patient fisher with a hundred catches."
+    requirements:
+      - type: stat
+        keys: [fish.caught]
+        amount: 100
+        label: "Catch 100 fish"
+    ability:
+      name: Deep Lure
+      description: "Right-click the Ascension Relic, then fish within 30 seconds for a shorter wait and guaranteed treasure catch."
+      cooldown-seconds: 20
+      settings: { wait-ticks: 60.0 }
+    auto-award: false
+
+  - id: mycelial_drifter
+    number: 27
+    name: Mycelial Drifter
+    color: "#9c6eaf"
+    description: "A cultivator who commands a restorative spore cloud."
+    requirements:
+      - type: stat
+        keys: [crops.harvested]
+        amount: 500
+        label: "Harvest 500 mature crops"
+      - type: stat
+        keys: [kills.hostile]
+        amount: 100
+        label: "Kill 100 hostile mobs"
+    ability:
+      name: Spore Cloud
+      description: "Right-click the Ascension Relic to create a four-second damaging cloud that heals you once."
+      cooldown-seconds: 45
+      settings: { radius: 4.0, ticks: 4.0, damage-per-tick-health-points: 2.0, heal-health-points: 2.0 }
+    auto-award: false
+
+  - id: huntsman
+    number: 28
+    name: Huntsman
+    color: "#795548"
+    description: "A practiced hunter of hostile mobs."
+    requirements:
+      - type: stat
+        keys: [kills.hostile]
+        amount: 250
+        label: "Kill 250 hostile mobs"
+    ability:
+      name: Marked Prey
+      description: "The first attacked hostile mob or eligible player is marked and takes increased owner damage for 8 seconds."
+      cooldown-seconds: 20
+      settings: { duration-seconds: 8.0, combat-damage-multiplier: 1.5 }
+    auto-award: false
+
+  - id: stonebreaker
+    number: 29
+    name: Stonebreaker
+    color: "#7f8c8d"
+    description: "A miner who has broken five hundred stone blocks."
+    requirements:
+      - type: stat
+        keys: [mined.STONE, mined.DEEPSLATE]
+        amount: 500
+        label: "Mine 500 stone or deepslate"
+    ability:
+      name: Shatter
+      description: "Periodically break a small connected stone cluster; some extra drops are automatically smelted."
+      cooldown-seconds: 30
+      settings: { maximum-extra-blocks: 5.0, auto-smelt-chance: 0.1 }
+    auto-award: false
+
+  - id: new_arrival
+    number: 30
+    name: New Arrival
+    color: "#ecf0f1"
+    description: "A new adventurer taking the first steps toward Ascension."
+    requirements:
+      - type: stat
+        keys: [levels]
+        amount: 30
+        label: "Gain 30 experience levels"
+    ability:
+      name: Second Wind
+      description: "Killing a hostile mob restores one heart and briefly grants Speed I."
+      cooldown-seconds: 12
+      settings: { restorative-heal-health-points: 2.0, speed-seconds: 2.0 }
+    auto-award: false

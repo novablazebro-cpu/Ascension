@@ -1,0 +1,1522 @@
+# Each purchase buys one plain bundle using ordinary emerald blocks.
+# Persistent stock and demand pricing; restocks are randomly scheduled 2 to 4 hours apart.
+catalog-version: 2
+restock:
+  min-seconds: 7200
+  max-seconds: 14400
+price:
+  purchase-step: 1
+  restock-drop: 1
+categories:
+  combat: "PvP & combat"
+  armor: "Armor & wearables"
+  tools: "Tools & utility"
+  food: "Food"
+  resources: "Ores & resources"
+  wood: "Wood & storage"
+  stone: "Stone & masonry"
+  building: "Building & decoration"
+  farming: "Farming & mob drops"
+  nether_end: "Nether & End"
+products:
+  iron_sword:
+    material: IRON_SWORD
+    label: "Iron sword"
+    category: combat
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diamond_sword:
+    material: DIAMOND_SWORD
+    label: "Diamond sword"
+    category: combat
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  iron_axe:
+    material: IRON_AXE
+    label: "Iron axe"
+    category: combat
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diamond_axe:
+    material: DIAMOND_AXE
+    label: "Diamond axe"
+    category: combat
+    quantity: 1
+    base-price: 3
+    min-price: 1
+    max-price: 6
+    max-stock: 16
+    restock-amount: 8
+  bow:
+    material: BOW
+    label: "Bow"
+    category: combat
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  crossbow:
+    material: CROSSBOW
+    label: "Crossbow"
+    category: combat
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  arrow:
+    material: ARROW
+    label: "Arrows"
+    category: combat
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  shield:
+    material: SHIELD
+    label: "Shield"
+    category: combat
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  trident:
+    material: TRIDENT
+    label: "Trident"
+    category: combat
+    quantity: 1
+    base-price: 12
+    min-price: 1
+    max-price: 24
+    max-stock: 16
+    restock-amount: 8
+  snowball:
+    material: SNOWBALL
+    label: "Snowballs"
+    category: combat
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  egg:
+    material: EGG
+    label: "Eggs"
+    category: combat
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  fishing_rod:
+    material: FISHING_ROD
+    label: "Fishing rod"
+    category: combat
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  totem_of_undying:
+    material: TOTEM_OF_UNDYING
+    label: "Totem of Undying"
+    category: combat
+    quantity: 1
+    base-price: 8
+    min-price: 1
+    max-price: 16
+    max-stock: 16
+    restock-amount: 8
+  ender_pearl:
+    material: ENDER_PEARL
+    label: "Ender pearls"
+    category: combat
+    quantity: 4
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  golden_apple:
+    material: GOLDEN_APPLE
+    label: "Golden apples"
+    category: combat
+    quantity: 2
+    base-price: 3
+    min-price: 1
+    max-price: 6
+    max-stock: 16
+    restock-amount: 8
+  iron_helmet:
+    material: IRON_HELMET
+    label: "Iron helmet"
+    category: armor
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  iron_chestplate:
+    material: IRON_CHESTPLATE
+    label: "Iron chestplate"
+    category: armor
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  iron_leggings:
+    material: IRON_LEGGINGS
+    label: "Iron leggings"
+    category: armor
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  iron_boots:
+    material: IRON_BOOTS
+    label: "Iron boots"
+    category: armor
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diamond_helmet:
+    material: DIAMOND_HELMET
+    label: "Diamond helmet"
+    category: armor
+    quantity: 1
+    base-price: 3
+    min-price: 1
+    max-price: 6
+    max-stock: 16
+    restock-amount: 8
+  diamond_chestplate:
+    material: DIAMOND_CHESTPLATE
+    label: "Diamond chestplate"
+    category: armor
+    quantity: 1
+    base-price: 5
+    min-price: 1
+    max-price: 10
+    max-stock: 16
+    restock-amount: 8
+  diamond_leggings:
+    material: DIAMOND_LEGGINGS
+    label: "Diamond leggings"
+    category: armor
+    quantity: 1
+    base-price: 4
+    min-price: 1
+    max-price: 8
+    max-stock: 16
+    restock-amount: 8
+  diamond_boots:
+    material: DIAMOND_BOOTS
+    label: "Diamond boots"
+    category: armor
+    quantity: 1
+    base-price: 3
+    min-price: 1
+    max-price: 6
+    max-stock: 16
+    restock-amount: 8
+  leather_helmet:
+    material: LEATHER_HELMET
+    label: "Leather helmet"
+    category: armor
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  leather_chestplate:
+    material: LEATHER_CHESTPLATE
+    label: "Leather tunic"
+    category: armor
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  leather_leggings:
+    material: LEATHER_LEGGINGS
+    label: "Leather pants"
+    category: armor
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  leather_boots:
+    material: LEATHER_BOOTS
+    label: "Leather boots"
+    category: armor
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  turtle_helmet:
+    material: TURTLE_HELMET
+    label: "Turtle shell helmet"
+    category: armor
+    quantity: 1
+    base-price: 4
+    min-price: 1
+    max-price: 8
+    max-stock: 16
+    restock-amount: 8
+  elytra:
+    material: ELYTRA
+    label: "Elytra"
+    category: armor
+    quantity: 1
+    base-price: 64
+    min-price: 64
+    max-price: 128
+    max-stock: 16
+    restock-amount: 8
+  carved_pumpkin:
+    material: CARVED_PUMPKIN
+    label: "Carved pumpkin"
+    category: armor
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  iron_pickaxe:
+    material: IRON_PICKAXE
+    label: "Iron pickaxe"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diamond_pickaxe:
+    material: DIAMOND_PICKAXE
+    label: "Diamond pickaxe"
+    category: tools
+    quantity: 1
+    base-price: 3
+    min-price: 1
+    max-price: 6
+    max-stock: 16
+    restock-amount: 8
+  iron_shovel:
+    material: IRON_SHOVEL
+    label: "Iron shovel"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diamond_shovel:
+    material: DIAMOND_SHOVEL
+    label: "Diamond shovel"
+    category: tools
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  iron_hoe:
+    material: IRON_HOE
+    label: "Iron hoe"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diamond_hoe:
+    material: DIAMOND_HOE
+    label: "Diamond hoe"
+    category: tools
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  shears:
+    material: SHEARS
+    label: "Shears"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  flint_and_steel:
+    material: FLINT_AND_STEEL
+    label: "Flint and steel"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  brush:
+    material: BRUSH
+    label: "Brush"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  compass:
+    material: COMPASS
+    label: "Compass"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  clock:
+    material: CLOCK
+    label: "Clock"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  spyglass:
+    material: SPYGLASS
+    label: "Spyglass"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  bucket:
+    material: BUCKET
+    label: "Bucket"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  water_bucket:
+    material: WATER_BUCKET
+    label: "Water bucket"
+    category: tools
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  lava_bucket:
+    material: LAVA_BUCKET
+    label: "Lava bucket"
+    category: tools
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  cooked_beef:
+    material: COOKED_BEEF
+    label: "Cooked beef"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cooked_porkchop:
+    material: COOKED_PORKCHOP
+    label: "Cooked porkchops"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cooked_chicken:
+    material: COOKED_CHICKEN
+    label: "Cooked chicken"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cooked_mutton:
+    material: COOKED_MUTTON
+    label: "Cooked mutton"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cooked_rabbit:
+    material: COOKED_RABBIT
+    label: "Cooked rabbit"
+    category: food
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cooked_cod:
+    material: COOKED_COD
+    label: "Cooked cod"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cooked_salmon:
+    material: COOKED_SALMON
+    label: "Cooked salmon"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  bread:
+    material: BREAD
+    label: "Bread"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  baked_potato:
+    material: BAKED_POTATO
+    label: "Baked potatoes"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  carrot:
+    material: CARROT
+    label: "Carrots"
+    category: food
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  golden_carrot:
+    material: GOLDEN_CARROT
+    label: "Golden carrots"
+    category: food
+    quantity: 16
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  apple:
+    material: APPLE
+    label: "Apples"
+    category: food
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  melon_slice:
+    material: MELON_SLICE
+    label: "Melon slices"
+    category: food
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  dried_kelp:
+    material: DRIED_KELP
+    label: "Dried kelp"
+    category: food
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  pumpkin_pie:
+    material: PUMPKIN_PIE
+    label: "Pumpkin pies"
+    category: food
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  iron_block:
+    material: IRON_BLOCK
+    label: "Iron block"
+    category: resources
+    quantity: 1
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  iron_ingot:
+    material: IRON_INGOT
+    label: "Iron ingots"
+    category: resources
+    quantity: 8
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  iron_nugget:
+    material: IRON_NUGGET
+    label: "Iron nuggets"
+    category: resources
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  coal:
+    material: COAL
+    label: "Coal"
+    category: resources
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  charcoal:
+    material: CHARCOAL
+    label: "Charcoal"
+    category: resources
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  redstone:
+    material: REDSTONE
+    label: "Redstone dust"
+    category: resources
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  lapis_lazuli:
+    material: LAPIS_LAZULI
+    label: "Lapis lazuli"
+    category: resources
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diamond:
+    material: DIAMOND
+    label: "Diamond"
+    category: resources
+    quantity: 1
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  gold_ingot:
+    material: GOLD_INGOT
+    label: "Gold ingots"
+    category: resources
+    quantity: 8
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  gold_nugget:
+    material: GOLD_NUGGET
+    label: "Gold nuggets"
+    category: resources
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  raw_iron:
+    material: RAW_IRON
+    label: "Raw iron"
+    category: resources
+    quantity: 16
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  raw_gold:
+    material: RAW_GOLD
+    label: "Raw gold"
+    category: resources
+    quantity: 16
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  raw_copper:
+    material: RAW_COPPER
+    label: "Raw copper"
+    category: resources
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  copper_ingot:
+    material: COPPER_INGOT
+    label: "Copper ingots"
+    category: resources
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  amethyst_shard:
+    material: AMETHYST_SHARD
+    label: "Amethyst shards"
+    category: resources
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  oak_log:
+    material: OAK_LOG
+    label: "Oak logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  spruce_log:
+    material: SPRUCE_LOG
+    label: "Spruce logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  birch_log:
+    material: BIRCH_LOG
+    label: "Birch logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  jungle_log:
+    material: JUNGLE_LOG
+    label: "Jungle logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  acacia_log:
+    material: ACACIA_LOG
+    label: "Acacia logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  dark_oak_log:
+    material: DARK_OAK_LOG
+    label: "Dark oak logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  mangrove_log:
+    material: MANGROVE_LOG
+    label: "Mangrove logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cherry_log:
+    material: CHERRY_LOG
+    label: "Cherry logs"
+    category: wood
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  bamboo:
+    material: BAMBOO
+    label: "Bamboo"
+    category: wood
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  oak_planks:
+    material: OAK_PLANKS
+    label: "Oak planks"
+    category: wood
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  spruce_planks:
+    material: SPRUCE_PLANKS
+    label: "Spruce planks"
+    category: wood
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  birch_planks:
+    material: BIRCH_PLANKS
+    label: "Birch planks"
+    category: wood
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  stick:
+    material: STICK
+    label: "Sticks"
+    category: wood
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  chest:
+    material: CHEST
+    label: "Chests"
+    category: wood
+    quantity: 8
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  crafting_table:
+    material: CRAFTING_TABLE
+    label: "Crafting tables"
+    category: wood
+    quantity: 8
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cobblestone:
+    material: COBBLESTONE
+    label: "Cobblestone"
+    category: stone
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  stone:
+    material: STONE
+    label: "Stone"
+    category: stone
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  smooth_stone:
+    material: SMOOTH_STONE
+    label: "Smooth stone"
+    category: stone
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  stone_bricks:
+    material: STONE_BRICKS
+    label: "Stone bricks"
+    category: stone
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  mossy_stone_bricks:
+    material: MOSSY_STONE_BRICKS
+    label: "Mossy stone bricks"
+    category: stone
+    quantity: 32
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  cracked_stone_bricks:
+    material: CRACKED_STONE_BRICKS
+    label: "Cracked stone bricks"
+    category: stone
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  andesite:
+    material: ANDESITE
+    label: "Andesite"
+    category: stone
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  diorite:
+    material: DIORITE
+    label: "Diorite"
+    category: stone
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  granite:
+    material: GRANITE
+    label: "Granite"
+    category: stone
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cobbled_deepslate:
+    material: COBBLED_DEEPSLATE
+    label: "Cobbled deepslate"
+    category: stone
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  deepslate_bricks:
+    material: DEEPSLATE_BRICKS
+    label: "Deepslate bricks"
+    category: stone
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  tuff:
+    material: TUFF
+    label: "Tuff"
+    category: stone
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  calcite:
+    material: CALCITE
+    label: "Calcite"
+    category: stone
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  blackstone:
+    material: BLACKSTONE
+    label: "Blackstone"
+    category: stone
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  basalt:
+    material: BASALT
+    label: "Basalt"
+    category: stone
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  glass:
+    material: GLASS
+    label: "Glass"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  glass_pane:
+    material: GLASS_PANE
+    label: "Glass panes"
+    category: building
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  sand:
+    material: SAND
+    label: "Sand"
+    category: building
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  sandstone:
+    material: SANDSTONE
+    label: "Sandstone"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  red_sand:
+    material: RED_SAND
+    label: "Red sand"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  red_sandstone:
+    material: RED_SANDSTONE
+    label: "Red sandstone"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  gravel:
+    material: GRAVEL
+    label: "Gravel"
+    category: building
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  clay_ball:
+    material: CLAY_BALL
+    label: "Clay balls"
+    category: building
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  brick:
+    material: BRICK
+    label: "Brick items"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  bricks:
+    material: BRICKS
+    label: "Brick blocks"
+    category: building
+    quantity: 32
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  terracotta:
+    material: TERRACOTTA
+    label: "Terracotta"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  white_wool:
+    material: WHITE_WOOL
+    label: "White wool"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  white_concrete:
+    material: WHITE_CONCRETE
+    label: "White concrete"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  snow_block:
+    material: SNOW_BLOCK
+    label: "Snow blocks"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  ice:
+    material: ICE
+    label: "Ice"
+    category: building
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  wheat:
+    material: WHEAT
+    label: "Wheat"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  wheat_seeds:
+    material: WHEAT_SEEDS
+    label: "Wheat seeds"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  beetroot_seeds:
+    material: BEETROOT_SEEDS
+    label: "Beetroot seeds"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  pumpkin_seeds:
+    material: PUMPKIN_SEEDS
+    label: "Pumpkin seeds"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  melon_seeds:
+    material: MELON_SEEDS
+    label: "Melon seeds"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  sugar_cane:
+    material: SUGAR_CANE
+    label: "Sugar cane"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  cactus:
+    material: CACTUS
+    label: "Cactus"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  kelp:
+    material: KELP
+    label: "Kelp"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  sugar:
+    material: SUGAR
+    label: "Sugar"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  leather:
+    material: LEATHER
+    label: "Leather"
+    category: farming
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  feather:
+    material: FEATHER
+    label: "Feathers"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  string:
+    material: STRING
+    label: "String"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  bone:
+    material: BONE
+    label: "Bones"
+    category: farming
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  bone_meal:
+    material: BONE_MEAL
+    label: "Bone meal"
+    category: farming
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  slime_ball:
+    material: SLIME_BALL
+    label: "Slimeballs"
+    category: farming
+    quantity: 16
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  obsidian:
+    material: OBSIDIAN
+    label: "Obsidian"
+    category: nether_end
+    quantity: 16
+    base-price: 4
+    min-price: 2
+    max-price: 8
+    max-stock: 8
+    restock-amount: 4
+  quartz_block:
+    material: QUARTZ_BLOCK
+    label: "Quartz blocks"
+    category: nether_end
+    quantity: 16
+    base-price: 2
+    min-price: 1
+    max-price: 5
+    max-stock: 12
+    restock-amount: 6
+  glowstone:
+    material: GLOWSTONE
+    label: "Glowstone"
+    category: nether_end
+    quantity: 8
+    base-price: 2
+    min-price: 1
+    max-price: 5
+    max-stock: 12
+    restock-amount: 6
+  netherrack:
+    material: NETHERRACK
+    label: "Netherrack"
+    category: nether_end
+    quantity: 64
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  soul_sand:
+    material: SOUL_SAND
+    label: "Soul sand"
+    category: nether_end
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  soul_soil:
+    material: SOUL_SOIL
+    label: "Soul soil"
+    category: nether_end
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  nether_bricks:
+    material: NETHER_BRICKS
+    label: "Nether brick blocks"
+    category: nether_end
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  nether_quartz:
+    material: QUARTZ
+    label: "Nether quartz"
+    category: nether_end
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  nether_wart:
+    material: NETHER_WART
+    label: "Nether wart"
+    category: nether_end
+    quantity: 16
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  blaze_powder:
+    material: BLAZE_POWDER
+    label: "Blaze powder"
+    category: nether_end
+    quantity: 8
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  blaze_rod:
+    material: BLAZE_ROD
+    label: "Blaze rods"
+    category: nether_end
+    quantity: 4
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  magma_cream:
+    material: MAGMA_CREAM
+    label: "Magma cream"
+    category: nether_end
+    quantity: 8
+    base-price: 2
+    min-price: 1
+    max-price: 4
+    max-stock: 16
+    restock-amount: 8
+  end_stone:
+    material: END_STONE
+    label: "End stone"
+    category: nether_end
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  purpur_block:
+    material: PURPUR_BLOCK
+    label: "Purpur blocks"
+    category: nether_end
+    quantity: 32
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+  chorus_fruit:
+    material: CHORUS_FRUIT
+    label: "Chorus fruit"
+    category: nether_end
+    quantity: 16
+    base-price: 1
+    min-price: 1
+    max-price: 3
+    max-stock: 16
+    restock-amount: 8
+

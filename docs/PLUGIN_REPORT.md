@@ -1,6 +1,6 @@
 # Ascension 1.5.0 plugin report
 
-Copyright (c) 2026 Ayush Anand. Source available under the custom restricted [LICENSE.md](LICENSE.md); this is not an open-source license. Personal modification is permitted by the owner's terms; public redistribution requires written permission. GitHub's platform viewing and fork rights remain subject to GitHub's terms. Read the license for the controlling terms.
+Copyright (c) 2026 Ayush Anand. Source available under the custom restricted [LICENSE.md](../LICENSE.md); this is not an open-source license. Personal modification is permitted by the owner's terms; public redistribution requires written permission. GitHub's platform viewing and fork rights remain subject to GitHub's terms. Read the license for the controlling terms.
 
 Ascension provides 12 rank stages, 30 globally exclusive titles with three personal power levels each, a Chronicle interface, assigned hunts, weekly rank renewal, player auctions, item currency exchange, and a 150-product demand-priced shop. Text in menus, messages, title tags, and relic descriptions is presented without decorative text colors. Ability particles and sound are separate gameplay feedback.
 

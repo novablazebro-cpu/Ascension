@@ -1,0 +1,322 @@
+# Ascension title XP: lifetime XP belongs to the title ID and starts at level 1.
+# Level 2/3 settings and cooldown deltas are relative to current effective level 1.
+# Existing custom titles.yml values remain the level 1 baseline.
+thresholds: { level-2: 1000, level-3: 3000 }
+rewards:
+  natural-block: 1
+  smelted-item: 1
+  hostile-mob: 5
+  fishing-catch: 5
+  player-kill: 50
+  hunt: 100
+  raid: 100
+  boss: 200
+profiles:
+  ascendant:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        buff-duration-seconds: 6
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        buff-duration-seconds: 12
+  conqueror:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 2
+        duration-seconds: 2
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 4
+        duration-seconds: 4
+  stormbringer:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 10
+        all-targets: 0
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 10
+        all-targets: 1
+  tempest_herald:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 4
+        extra-chain-targets: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 8
+        extra-chain-targets: 2
+  voidwalker:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        aim-range: 8
+        charges: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        aim-range: 16
+        charges: 2
+  bloodlord:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        lifesteal-ratio: 0.05
+        max-heal-health-points: 0.5
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        lifesteal-ratio: 0.10
+        max-heal-health-points: 1
+  chronomancer:
+    2:
+      cooldown-delta-seconds: -10
+      settings-deltas:
+        window-seconds: 1
+    3:
+      cooldown-delta-seconds: -20
+      settings-deltas:
+        window-seconds: 2
+  titan:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        slam-radius: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        slam-radius: 2
+  undying:
+    2:
+      cooldown-delta-seconds: -10800
+      settings-deltas: {}
+    3:
+      cooldown-delta-seconds: -21600
+      settings-deltas: {}
+  end_city_conqueror:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        slow-falling-seconds: 1
+        landing-speed-seconds: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        slow-falling-seconds: 2
+        landing-speed-seconds: 2
+  wardens_bane:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        damage-multiplier: -0.04
+        heavy-hit-multiplier: -0.05
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        damage-multiplier: -0.08
+        heavy-hit-multiplier: -0.10
+  frostbound:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 1
+        slow-seconds: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 2
+        slow-seconds: 2
+  witherbound:
+    2:
+      cooldown-delta-seconds: -5
+      settings-deltas:
+        radius: 1
+    3:
+      cooldown-delta-seconds: -10
+      settings-deltas:
+        radius: 2
+  soul_reaper:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        maximum-souls: 5
+        heal-health-points: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        maximum-souls: 10
+        heal-health-points: 2
+  bounty_hunter:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 10
+        duration-seconds: 2
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 20
+        duration-seconds: 4
+  raidbreaker:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 1
+        raid-strength-seconds: 2
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 2
+        raid-strength-seconds: 4
+  tideborn:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        horizontal-force: 0.2
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        horizontal-force: 0.4
+  beastbane:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        health-threshold-health-points: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        health-threshold-health-points: 2
+  emberforge:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        duration-seconds: 2
+        bonus-damage-health-points: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        duration-seconds: 4
+        bonus-damage-health-points: 2
+  alchemist:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        duration-multiplier: 0.15
+        splash-radius: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        duration-multiplier: 0.30
+        splash-radius: 2
+  treasure_whisperer:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 4
+        bonus-chance: 0.025
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        range: 8
+        bonus-chance: 0.05
+  berserker:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        maximum-bonus-damage: 1
+        decay-seconds: 2
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        maximum-bonus-damage: 2
+        decay-seconds: 4
+  colossus:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        bonus-max-health-points: 2
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        bonus-max-health-points: 4
+  ashborn:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 1
+        burn-seconds: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 2
+        burn-seconds: 2
+  trailblazer:
+    2:
+      cooldown-delta-seconds: -3
+      settings-deltas:
+        horizontal-force: 0.2
+    3:
+      cooldown-delta-seconds: -5
+      settings-deltas:
+        horizontal-force: 0.4
+  angler:
+    2:
+      cooldown-delta-seconds: -2
+      settings-deltas:
+        wait-ticks: -10
+    3:
+      cooldown-delta-seconds: -4
+      settings-deltas:
+        wait-ticks: -20
+  mycelial_drifter:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 1
+        heal-health-points: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        radius: 2
+        heal-health-points: 2
+  huntsman:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        duration-seconds: 2
+        combat-damage-multiplier: 0.1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        duration-seconds: 4
+        combat-damage-multiplier: 0.2
+  stonebreaker:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        maximum-extra-blocks: 2
+        auto-smelt-chance: 0.05
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        maximum-extra-blocks: 4
+        auto-smelt-chance: 0.10
+  new_arrival:
+    2:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        restorative-heal-health-points: 1
+        speed-seconds: 1
+    3:
+      cooldown-delta-seconds: 0
+      settings-deltas:
+        restorative-heal-health-points: 2
+        speed-seconds: 2
