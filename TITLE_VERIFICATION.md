@@ -25,7 +25,7 @@ in a PvP-enabled world who is not on the owner's scoreboard team.
 | 4 Tempest Herald | Relic click while aiming | Visible hostile mob or eligible player; then up to two more | 20 primary, 8 chain | 8 HP per strike | 45s | No cast without primary |
 | 5 Voidwalker | Relic click while aiming | Self, safe landing block | 32 | Teleport; three charges | 60s per charge | No teleport or charge use |
 | 6 Bloodlord | Automatic on every accepted damage hit while below full health | Mobs and eligible players | Combat hit | Heal 20% of final damage, at most 3 HP per hit | None | No heal at full health or on blocked damage |
-| 7 Chronomancer | Relic click, then second click | Self | Saved position | Restore saved health and position within 3s | 120s | First click saves; expired second click starts new save |
+| 7 Chronomancer | Relic click, then second click | Self | Saved position | Restore saved health and position within 3s | 120s | First click saves and starts the 120s cooldown; an expired second click shows the cooldown and does not start a new save |
 | 8 Titan | Relic click | Other living mobs and eligible players | 3 | 26 HP and knockback | 30s | No cast |
 | 9 Undying | Automatic on otherwise fatal damage | Self | Self | Survive fatal hit | 24h | No activation on nonfatal hit |
 | 10 End City Conqueror | Automatic on dangerous fall and landing | Self | Self | Fall protection, Slow Falling 5s, Speed II for 2s on landing | 45s | No activation below 6-block fall |
@@ -46,7 +46,7 @@ in a PvP-enabled world who is not on the owner's scoreboard team.
 | 25 Trailblazer | Relic click | Self | Self | Forward dash, fall reset | 25s | Dash still casts |
 | 26 Angler | Relic click, then fishing rod cast within 30s | Fishing catch | Rod | Shorter 60-tick wait; treasure catch | 20s | No catch until fishing succeeds |
 | 27 Mycelial Drifter | Relic click | Hostile mobs and eligible players | 4 from cast | Four one-second pulses of 2 HP; heal self 2 HP once | 45s | Cloud still casts |
-| 28 Huntsman | Automatic on first valid combat hit | Hostile mob or eligible player | Hit | Owner-specific mark for 8s; later hits x1.5 | 20s | No mark on invalid or cancelled hit |
+| 28 Huntsman | Automatic on first valid combat hit | Hostile mob or eligible player | Hit | Owner-specific mark for 8s; the marking hit and later hits x1.5 | 20s | No mark on invalid or cancelled hit |
 | 29 Stonebreaker | Automatic on natural stone/deepslate break | Connected stone cluster | Adjacent blocks | Up to five extra breaks; 10% auto-smelt chance | 30s | No extra breaks without connected stone |
 | 30 New Arrival | Automatic on valid hostile mob kill | Self | Kill | Heal 2 HP and Speed I for 2s | 12s | No effect on other kills |
 
