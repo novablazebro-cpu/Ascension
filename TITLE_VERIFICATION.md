@@ -27,7 +27,7 @@ in a PvP-enabled world who is not on the owner's scoreboard team.
 | 6 Bloodlord | Automatic on every accepted damage hit while below full health | Mobs and eligible players | Combat hit | Heal 20% of final damage, at most 3 HP per hit | None | No heal at full health or on blocked damage |
 | 7 Chronomancer | Relic click, then second click | Self | Saved position | Restore saved health and position within 3s | 120s | First click saves and starts the 120s cooldown; an expired second click shows the cooldown and does not start a new save |
 | 8 Titan | Relic click | Other living mobs and eligible players | 3 | 26 HP and knockback | 30s | No cast |
-| 9 Undying | Automatic on otherwise fatal damage | Self | Self | Survive fatal hit | 24h | No activation on nonfatal hit |
+| 9 Undying | Automatic on otherwise fatal damage | Self | Self | Survive fatal hit | 24h | No activation on nonfatal hit, void damage or /kill |
 | 10 End City Conqueror | Automatic on dangerous fall and landing | Self | Self | Fall protection, Slow Falling 5s, Speed II for 2s on landing | 45s | No activation below 6-block fall |
 | 11 Warden's Bane | Automatic on sonic boom or heavy hit | Self | Self | Sonic boom x0.2; hit of at least 16 HP x0.5 | 60s | No activation on smaller hit |
 | 12 Frostbound | Relic click | Hostile mobs and eligible players | 5 | 6 HP, Slowness II for 4s | 45s | No cast |

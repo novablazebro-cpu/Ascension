@@ -1,0 +1,53 @@
+diff -ru a/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
+--- src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java	2026-10-26 14:23:33.725560693 +0000
++++ src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java	2026-10-26 14:23:33.769409103 +0000
+@@ -1116,7 +1116,9 @@
+         }
+     }
+ 
+-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
++    /* MONITOR with ignoreCancelled: extra blocks break only after the original break survived every other
++       plugin. Each extra block still goes through owner.breakBlock, so protection plugins may refuse it. */
++    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+     public void onShatter(BlockBreakEvent event) {
+         Block origin = event.getBlock();
+         if ((origin.getType() != Material.STONE && origin.getType() != Material.DEEPSLATE)
+@@ -1313,6 +1315,9 @@
+                 || player.getHealth() - event.getFinalDamage() > 0) {
+             return;
+         }
++        if (!undyingCanSave(event.getCause())) {
++            return;
++        }
+         PlayerSession session = sessions.get(player);
+         if (!equipped(session, "undying")) {
+             return;
+@@ -1333,6 +1338,11 @@
+         start(session, REFUSE_DEATH, cooldown(session, "undying", 86_400), now);
+     }
+ 
++    /** Like a totem, Undying cannot save from void or /kill damage; spending the cooldown there only wastes it. */
++    static boolean undyingCanSave(EntityDamageEvent.DamageCause cause) {
++        return cause != EntityDamageEvent.DamageCause.VOID && cause != EntityDamageEvent.DamageCause.KILL;
++    }
++
+     static double vampireHeal(double finalDamage, double ratio, double cap) {
+         return Math.max(0.0, Math.min(cap, finalDamage * ratio));
+     }
+diff -ru a/src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java
+--- src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java	2026-10-26 14:23:33.730716517 +0000
++++ src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java	2026-10-26 14:23:40.561622313 +0000
+@@ -310,6 +310,13 @@
+     }
+ 
+     @Test
++    void undyingDoesNotSpendCooldownOnVoidOrKill() {
++        assertFalse(TitleAbilityListener.undyingCanSave(org.bukkit.event.entity.EntityDamageEvent.DamageCause.VOID));
++        assertFalse(TitleAbilityListener.undyingCanSave(org.bukkit.event.entity.EntityDamageEvent.DamageCause.KILL));
++        assertTrue(TitleAbilityListener.undyingCanSave(org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_ATTACK));
++    }
++
++    @Test
+     void rewindWindowIncludesOnlyClicksBeforeExpiry() {
+         assertTrue(TitleAbilityListener.rewindSnapshotActive(3_001, 3_000));
+         assertFalse(TitleAbilityListener.rewindSnapshotActive(3_000, 3_000));
