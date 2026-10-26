@@ -1,0 +1,25 @@
+{
+  "version": "1.6.0",
+  "source_commit": "88003de6ed5706d461d2b824c98ea485d9efb6ef",
+  "target": {
+    "paper_api": "26.3.build.200-stable",
+    "plugin_api_version": "26.3",
+    "java": 25,
+    "class_file_major_version": 69
+  },
+  "automated_tests": {
+    "framework": "MockBukkit mockbukkit-v26.3 4.118.0, JUnit 6.1.3",
+    "tests": 381,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "suites": 41
+  },
+  "reproducible_build": "Building the source archive from a fresh unzip produced a byte-identical JAR",
+  "live_paper_26_3_server_tested": false,
+  "live_two_player_ipad_tested": false,
+  "sha256": {
+    "Ascension-1.6.0-paper26.3.jar": "ebb90448621b8c8c91c11e803bc5b94412ce12986752cd4c5e9fe730b23e9c5d",
+    "Ascension-1.6.0-source.zip": "5f5788b66cfe7d0bff61b3022f95a166e6b468cd95aa47c24407ae8da1b9656c"
+  }
+}
