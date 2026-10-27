@@ -1,0 +1,11 @@
+name: AnglerTest
+version: '${version}'
+main: com.leadsystems.minecraft.anglertest.AnglerTestPlugin
+api-version: '${apiVersion}'
+description: Standalone Angler-only test plugin for Ascension Deep Lure timing. Not the main Ascension plugin.
+author: Ayush Anand
+
+commands:
+  equip:
+    description: Equip the Angler test title. Only "angler" is accepted here.
+    usage: /equip angler

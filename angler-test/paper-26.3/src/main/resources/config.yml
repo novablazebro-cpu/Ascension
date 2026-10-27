@@ -1,0 +1,2 @@
+# Ticks passed to FishHook#setWaitTime(int). Same default as Ascension's Angler (title-levels.yml).
+wait-ticks: 60
