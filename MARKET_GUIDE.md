@@ -1,5 +1,7 @@
 # Auction House and Server Shop — Ascension 1.5.0
 
+> **Market rebalance available:** the source patch `patches/market-balance.patch` makes the exchange one-way (break currency down only) and rebalances the server shop for survival servers. See [MARKET_BALANCE.md](MARKET_BALANCE.md). The text below describes the released 1.5.0 JAR.
+
 Open the Chronicle of Ascension and choose **Auction House & Shop**, or use `/auction` (`/ah` and `/market` are aliases). Java players get a chest menu; Geyser players with Floodgate and `bedrock-forms` enabled get native Bedrock forms. Geyser without server-side Floodgate falls back to the chest menu.
 
 ## Player auctions
