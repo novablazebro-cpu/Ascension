@@ -5,6 +5,8 @@ catalog and exchange described in [MARKET_GUIDE.md](MARKET_GUIDE.md) until you b
 
 Prices are in ordinary **emerald blocks** (1 emerald block = 9 emeralds).
 
+What was checked, and what is still unproven, is in [MARKET_AUDIT.md](MARKET_AUDIT.md). Tideborn's change is in [PATCH_NOTES.md](PATCH_NOTES.md).
+
 ## Verdict for a ~20 player SMP
 
 Keep the market. The auction house, collection mailbox and journal recovery are the valuable part: players trade

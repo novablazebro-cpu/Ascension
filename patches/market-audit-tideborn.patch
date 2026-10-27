@@ -1,0 +1,982 @@
+diff --git a/docs/MARKET_AUDIT.md b/docs/MARKET_AUDIT.md
+new file mode 100644
+index 0000000..1399eca
+--- /dev/null
++++ b/docs/MARKET_AUDIT.md
+@@ -0,0 +1,51 @@
++# Market audit
++
++What was checked, how, what was wrong, and what is still unproven. "Verified" means it ran; "read" means a
++person-style code read with no execution.
++
++## Method
++
++1. Read every market class: `MarketCommand`, `MarketListener`, `MarketService`, `MarketMenus`, `MarketRepository`,
++   `MarketInventory`, `CurrencyExchange`, `DynamicShopService`, `DynamicShopRepository`, plus how `MenuService`,
++   `AscensionPlugin` and plugin.yml wire them together.
++2. Ran the real `MarketRepository` and `DynamicShopRepository` against real SQLite with the real V11 and V12
++   migrations: **86 checks, all pass** (`bash tools/market-sql-harness/run.sh`).
++3. Checked all 150 catalog materials against the Paper 26.3 `Material` enum: all exist (an unknown material would
++   stop the whole plugin from enabling).
++4. Updated the unit tests for the changes. **They have not been run**: the Paper API cannot be downloaded in the
++   environment where this was written. Run `gradle test` before deploying.
++
++## Results by area
++
++| Area | Result |
++|---|---|
++| Currency exchange rows (3 routes) | Verified: prepare, commit, double commit (one delivery only), abort, one pending operation per player, zero price and non-currency refused |
++| Exchange direction | Verified in menus and tests: only netherite to diamond blocks, diamond block to emerald blocks, netherite to emerald blocks. No upward route can be opened or confirmed |
++| Server shop | Verified: price rises per purchase, capped at double; restock lowers it to the floor, never below; stock never negative or above max; last bundle cannot be sold twice; abort returns the bundle without raising the price; commit twice gives one delivery |
++| Update from 1.5.0 | Verified on a used database: prices and stock clamp into the new bounds, removed products leave the menu, an in-flight Elytra purchase still completes and delivers, re-seeding is idempotent |
++| Downtime | Verified: 150 overdue products restock exactly once each, over three 5-second scheduler ticks |
++| Auction | Verified: 10-listing limit, no self-buying, wrong price or currency refused, reserved listing cannot be bought or cancelled, sold listing cannot be bought again, stranger cannot cancel or claim, partial claim keeps the remainder, abort restores the listing, paging 10 per page |
++| Commands | Read: `/auction` with `buy`, `sell`, `mine`, `collect`, `shop`, `exchange`; admin `pending`, `recover <online player>`, `resolve <id> <commit\|abort>`. Aliases `/ah` and `/market`. Permissions `ascension.market` (everyone) and `ascension.admin.market` (ops) |
++| Interrupted-trade recovery | Read only. Logic compares the live inventory with the saved before and after snapshots and refuses to guess. Needs `gradle test` (MarketFlowTest) or a server to prove |
++| Menus, Bedrock forms, inventory locking | Read only. Menus are built generically, so the shorter exchange list needs no Bedrock change |
++
++## Bugs found and fixed
++
++1. The Exchange Currency button still said "Convert currency in either direction." Now "Break larger currency into smaller change."
++2. Any damage froze trading for 10 seconds, including fire, falls, hunger and drowning. A starving or burning player
++   could be locked out of the market. Only damage from another entity counts as combat now.
++3. `/auction resolve <id> COMMIT` printed usage because the decision was case-sensitive. It is not now.
++
++## Found, not changed
++
++- Opening any market screen also checks the combat pause, so browsing is blocked for 10 seconds after a fight, not
++  only buying. This matches the documented "trading pauses after combat" but is stricter than it sounds.
++- If a restock countdown hits zero while a player in combat has the shop open, the refresh prints the combat message
++  once per retry until it ends (at most about 10 lines).
++- `/auction recover` needs the player online. `/auction resolve` changes the database only, never an inventory; that is
++  intentional and printed to the admin.
++
++## Not proven
++
++Real client behaviour, Bedrock and iPad forms, two players racing for the same listing on a live server, and the
++Java unit tests. The storage layer under all of it is proven.
+diff --git a/docs/MARKET_BALANCE.md b/docs/MARKET_BALANCE.md
+new file mode 100644
+index 0000000..13f3816
+--- /dev/null
++++ b/docs/MARKET_BALANCE.md
+@@ -0,0 +1,244 @@
++# Market balance — catalog v3 (source patch, not yet a release)
++
++This describes the market after `patches/market-balance.patch`. The released 1.5.0 JAR still has the old
++catalog and exchange described in [MARKET_GUIDE.md](MARKET_GUIDE.md) until you build from the patched source.
++
++Prices are in ordinary **emerald blocks** (1 emerald block = 9 emeralds).
++
++What was checked, and what is still unproven, is in [MARKET_AUDIT.md](MARKET_AUDIT.md). Tideborn's change is in [PATCH_NOTES.md](PATCH_NOTES.md).
++
++## Verdict for a ~20 player SMP
++
++Keep the market. The auction house, collection mailbox and journal recovery are the valuable part: players trade
++with each other without Vault, even when the seller is offline. The 1.5.0 defaults had three real balance faults,
++which this patch fixes:
++
++| Problem in 1.5.0 | Why it breaks a survival server | Fix |
++|---|---|---|
++| Exchange worked in both directions at a fixed rate | Emeralds are endless through villager trading. 16 emerald blocks (144 emeralds, minutes in a trading hall) bought a netherite ingot, and 4 bought 9 diamonds. Mining and the Nether became optional. | Exchange only breaks currency down: netherite → diamond blocks → emerald blocks, same rate. |
++| Shop sold Elytra, Totems of Undying, Tridents and raw diamonds, 16 of each per restock | Skips the End, raids and ocean monuments; buyable totems make PvP meaningless. | Removed. Replaced with spectral arrows, firework rockets, a chainmail chestplate and flint. |
++| Every price could fall to 1 emerald block after restocks | A diamond chestplate, a trident or a totem could end up costing 9 emeralds. | The starting price is now the floor. Demand can raise a price to at most double it (or +2 for 1-block items), then restocks bring it back down to the floor. |
++
++Other changes:
++- **Diamond gear** is priced above crafting cost (roughly one emerald block per diamond in the recipe, a convenience
++  premium) and has stock 4 (+2 per restock), so one player cannot empty it for the server.
++- **Iron and gold** bundles are consistent: ingots 16 for 3, iron blocks 4 for 6, raw iron and raw gold 16 for 2.
++- **Ender pearls, golden apples, golden carrots and blaze rods** cost slightly more.
++- **Tools and armor** stock is 8 (+4 per restock). Bulk blocks, food and farm goods stay at 16 (+8).
++
++Everything else is unchanged: 150 products, 15 per category, restocks every 2–4 hours per product, +1 price per
++purchase and −1 per restock.
++
++## Existing servers
++
++On the first start after updating, `plugins/Ascension/shop.yml` is backed up as `shop.yml.before-catalog-v3-<time>`
++and migrated:
++- every product still exactly as 1.5.0 shipped it gets its v3 values, or is removed if v3 dropped it;
++- the four replacement products are added;
++- any product you edited, added or deleted stays exactly as you left it.
++
++Persisted prices are clamped into the new bounds. Removed products disappear from the menu, and a purchase that
++is mid-transaction still completes and delivers. The exchange change needs no migration. Deliveries already in
++collection keep their recorded amounts.
++
++## Full v3 catalog
++
++### PvP & combat
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Iron sword | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Diamond sword | 1× for 3 (3–6), stock 4 +2 | 1× for 2 (1–4), stock 16 |
++| Iron axe | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Diamond axe | 1× for 4 (4–8), stock 4 +2 | 1× for 3 (1–6), stock 16 |
++| Bow | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Crossbow | 1× for 2 (2–4), stock 8 +4 | 1× for 2 (1–4), stock 16 |
++| Arrows | 32× for 1 (1–3), stock 16 +8 | same |
++| Shield | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Spectral arrows | 16× for 2 (2–4), stock 16 +8 | **new** |
++| Snowballs | 16× for 1 (1–3), stock 16 +8 | same |
++| Eggs | 16× for 1 (1–3), stock 16 +8 | same |
++| Fishing rod | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Firework rockets | 16× for 2 (2–4), stock 8 +4 | **new** |
++| Ender pearls | 4× for 3 (3–6), stock 8 +4 | 4× for 2 (1–4), stock 16 |
++| Golden apples | 2× for 5 (5–10), stock 8 +4 | 2× for 3 (1–6), stock 16 |
++
++### Armor & wearables
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Iron helmet | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Iron chestplate | 1× for 2 (2–4), stock 8 +4 | 1× for 2 (1–4), stock 16 |
++| Iron leggings | 1× for 2 (2–4), stock 8 +4 | 1× for 2 (1–4), stock 16 |
++| Iron boots | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Diamond helmet | 1× for 6 (6–12), stock 4 +2 | 1× for 3 (1–6), stock 16 |
++| Diamond chestplate | 1× for 10 (10–20), stock 4 +2 | 1× for 5 (1–10), stock 16 |
++| Diamond leggings | 1× for 9 (9–18), stock 4 +2 | 1× for 4 (1–8), stock 16 |
++| Diamond boots | 1× for 5 (5–10), stock 4 +2 | 1× for 3 (1–6), stock 16 |
++| Leather helmet | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Leather tunic | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Leather pants | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Leather boots | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Turtle shell helmet | 1× for 4 (4–8), stock 4 +2 | 1× for 4 (1–8), stock 16 |
++| Chainmail chestplate | 1× for 2 (2–4), stock 8 +4 | **new** |
++| Carved pumpkin | 1× for 1 (1–3), stock 16 +8 | same |
++
++### Tools & utility
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Iron pickaxe | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Diamond pickaxe | 1× for 4 (4–8), stock 4 +2 | 1× for 3 (1–6), stock 16 |
++| Iron shovel | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Diamond shovel | 1× for 2 (2–4), stock 4 +2 | 1× for 2 (1–4), stock 16 |
++| Iron hoe | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Diamond hoe | 1× for 3 (3–6), stock 4 +2 | 1× for 2 (1–4), stock 16 |
++| Shears | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Flint and steel | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Brush | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Compass | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Clock | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Spyglass | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Bucket | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Water bucket | 1× for 1 (1–3), stock 8 +4 | 1× for 1 (1–3), stock 16 |
++| Lava bucket | 1× for 2 (2–4), stock 8 +4 | 1× for 2 (1–4), stock 16 |
++
++### Food
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Cooked beef | 32× for 1 (1–3), stock 16 +8 | same |
++| Cooked porkchops | 32× for 1 (1–3), stock 16 +8 | same |
++| Cooked chicken | 32× for 1 (1–3), stock 16 +8 | same |
++| Cooked mutton | 32× for 1 (1–3), stock 16 +8 | same |
++| Cooked rabbit | 16× for 1 (1–3), stock 16 +8 | same |
++| Cooked cod | 32× for 1 (1–3), stock 16 +8 | same |
++| Cooked salmon | 32× for 1 (1–3), stock 16 +8 | same |
++| Bread | 32× for 1 (1–3), stock 16 +8 | same |
++| Baked potatoes | 32× for 1 (1–3), stock 16 +8 | same |
++| Carrots | 32× for 1 (1–3), stock 16 +8 | same |
++| Golden carrots | 16× for 3 (3–6), stock 16 +8 | 16× for 2 (1–4), stock 16 |
++| Apples | 16× for 1 (1–3), stock 16 +8 | same |
++| Melon slices | 64× for 1 (1–3), stock 16 +8 | same |
++| Dried kelp | 64× for 1 (1–3), stock 16 +8 | same |
++| Pumpkin pies | 16× for 1 (1–3), stock 16 +8 | same |
++
++### Ores & resources
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Iron block | 4× for 6 (6–12), stock 8 +4 | 1× for 2 (1–4), stock 16 |
++| Iron ingots | 16× for 3 (3–6), stock 16 +8 | 8× for 2 (1–4), stock 16 |
++| Iron nuggets | 64× for 1 (1–3), stock 16 +8 | same |
++| Coal | 32× for 1 (1–3), stock 16 +8 | same |
++| Charcoal | 32× for 1 (1–3), stock 16 +8 | same |
++| Redstone dust | 32× for 1 (1–3), stock 16 +8 | same |
++| Lapis lazuli | 32× for 1 (1–3), stock 16 +8 | same |
++| Flint | 32× for 1 (1–3), stock 16 +8 | **new** |
++| Gold ingots | 16× for 3 (3–6), stock 16 +8 | 8× for 2 (1–4), stock 16 |
++| Gold nuggets | 64× for 1 (1–3), stock 16 +8 | same |
++| Raw iron | 16× for 2 (2–4), stock 16 +8 | 16× for 2 (1–4), stock 16 |
++| Raw gold | 16× for 2 (2–4), stock 16 +8 | 16× for 2 (1–4), stock 16 |
++| Raw copper | 32× for 1 (1–3), stock 16 +8 | same |
++| Copper ingots | 32× for 1 (1–3), stock 16 +8 | same |
++| Amethyst shards | 16× for 1 (1–3), stock 16 +8 | same |
++
++### Wood & storage
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Oak logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Spruce logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Birch logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Jungle logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Acacia logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Dark oak logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Mangrove logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Cherry logs | 32× for 1 (1–3), stock 16 +8 | same |
++| Bamboo | 64× for 1 (1–3), stock 16 +8 | same |
++| Oak planks | 64× for 1 (1–3), stock 16 +8 | same |
++| Spruce planks | 64× for 1 (1–3), stock 16 +8 | same |
++| Birch planks | 64× for 1 (1–3), stock 16 +8 | same |
++| Sticks | 64× for 1 (1–3), stock 16 +8 | same |
++| Chests | 8× for 1 (1–3), stock 16 +8 | same |
++| Crafting tables | 8× for 1 (1–3), stock 16 +8 | same |
++
++### Stone & masonry
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Cobblestone | 64× for 1 (1–3), stock 16 +8 | same |
++| Stone | 64× for 1 (1–3), stock 16 +8 | same |
++| Smooth stone | 32× for 1 (1–3), stock 16 +8 | same |
++| Stone bricks | 32× for 1 (1–3), stock 16 +8 | same |
++| Mossy stone bricks | 32× for 2 (2–4), stock 16 +8 | 32× for 2 (1–4), stock 16 |
++| Cracked stone bricks | 32× for 1 (1–3), stock 16 +8 | same |
++| Andesite | 64× for 1 (1–3), stock 16 +8 | same |
++| Diorite | 64× for 1 (1–3), stock 16 +8 | same |
++| Granite | 64× for 1 (1–3), stock 16 +8 | same |
++| Cobbled deepslate | 64× for 1 (1–3), stock 16 +8 | same |
++| Deepslate bricks | 32× for 1 (1–3), stock 16 +8 | same |
++| Tuff | 64× for 1 (1–3), stock 16 +8 | same |
++| Calcite | 32× for 1 (1–3), stock 16 +8 | same |
++| Blackstone | 32× for 1 (1–3), stock 16 +8 | same |
++| Basalt | 32× for 1 (1–3), stock 16 +8 | same |
++
++### Building & decoration
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Glass | 32× for 1 (1–3), stock 16 +8 | same |
++| Glass panes | 64× for 1 (1–3), stock 16 +8 | same |
++| Sand | 64× for 1 (1–3), stock 16 +8 | same |
++| Sandstone | 32× for 1 (1–3), stock 16 +8 | same |
++| Red sand | 32× for 1 (1–3), stock 16 +8 | same |
++| Red sandstone | 32× for 1 (1–3), stock 16 +8 | same |
++| Gravel | 64× for 1 (1–3), stock 16 +8 | same |
++| Clay balls | 64× for 1 (1–3), stock 16 +8 | same |
++| Brick items | 32× for 1 (1–3), stock 16 +8 | same |
++| Brick blocks | 32× for 2 (2–4), stock 16 +8 | 32× for 2 (1–4), stock 16 |
++| Terracotta | 32× for 1 (1–3), stock 16 +8 | same |
++| White wool | 32× for 1 (1–3), stock 16 +8 | same |
++| White concrete | 32× for 1 (1–3), stock 16 +8 | same |
++| Snow blocks | 32× for 1 (1–3), stock 16 +8 | same |
++| Ice | 32× for 1 (1–3), stock 16 +8 | same |
++
++### Farming & mob drops
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Wheat | 32× for 1 (1–3), stock 16 +8 | same |
++| Wheat seeds | 32× for 1 (1–3), stock 16 +8 | same |
++| Beetroot seeds | 32× for 1 (1–3), stock 16 +8 | same |
++| Pumpkin seeds | 32× for 1 (1–3), stock 16 +8 | same |
++| Melon seeds | 32× for 1 (1–3), stock 16 +8 | same |
++| Sugar cane | 32× for 1 (1–3), stock 16 +8 | same |
++| Cactus | 32× for 1 (1–3), stock 16 +8 | same |
++| Kelp | 32× for 1 (1–3), stock 16 +8 | same |
++| Sugar | 32× for 1 (1–3), stock 16 +8 | same |
++| Leather | 16× for 1 (1–3), stock 16 +8 | same |
++| Feathers | 32× for 1 (1–3), stock 16 +8 | same |
++| String | 32× for 1 (1–3), stock 16 +8 | same |
++| Bones | 32× for 1 (1–3), stock 16 +8 | same |
++| Bone meal | 64× for 1 (1–3), stock 16 +8 | same |
++| Slimeballs | 16× for 2 (2–4), stock 16 +8 | 16× for 2 (1–4), stock 16 |
++
++### Nether & End
++
++| Product | v3: bundle, start price (floor–cap), stock +restock | v2 (shipped 1.5.0) |
++|---|---|---|
++| Obsidian | 16× for 4 (4–8), stock 8 +4 | 16× for 4 (2–8), stock 8 |
++| Quartz blocks | 16× for 2 (2–4), stock 12 +6 | 16× for 2 (1–5), stock 12 |
++| Glowstone | 8× for 2 (2–4), stock 12 +6 | 8× for 2 (1–5), stock 12 |
++| Netherrack | 64× for 1 (1–3), stock 16 +8 | same |
++| Soul sand | 32× for 1 (1–3), stock 16 +8 | same |
++| Soul soil | 32× for 1 (1–3), stock 16 +8 | same |
++| Nether brick blocks | 32× for 1 (1–3), stock 16 +8 | same |
++| Nether quartz | 32× for 1 (1–3), stock 16 +8 | same |
++| Nether wart | 16× for 2 (2–4), stock 16 +8 | 16× for 2 (1–4), stock 16 |
++| Blaze powder | 8× for 2 (2–4), stock 16 +8 | 8× for 2 (1–4), stock 16 |
++| Blaze rods | 4× for 3 (3–6), stock 8 +4 | 4× for 2 (1–4), stock 16 |
++| Magma cream | 8× for 2 (2–4), stock 16 +8 | 8× for 2 (1–4), stock 16 |
++| End stone | 32× for 1 (1–3), stock 16 +8 | same |
++| Purpur blocks | 32× for 1 (1–3), stock 16 +8 | same |
++| Chorus fruit | 16× for 1 (1–3), stock 16 +8 | same |
+diff --git a/docs/MARKET_GUIDE.md b/docs/MARKET_GUIDE.md
+index d25c0df..9dee281 100644
+--- a/docs/MARKET_GUIDE.md
++++ b/docs/MARKET_GUIDE.md
+@@ -17,14 +17,13 @@ The book's **Exchange Currency** section consumes real inventory items:
+ 
+ | Give | Receive in collection |
+ |---|---|
+-| 4 emerald blocks | 1 diamond block |
+ | 1 diamond block | 4 emerald blocks |
+-| 4 diamond blocks | 1 netherite ingot |
+ | 1 netherite ingot | 4 diamond blocks |
+-| 16 emerald blocks | 1 netherite ingot |
+ | 1 netherite ingot | 16 emerald blocks |
+ 
+-The value is **1 netherite ingot = 4 diamond blocks = 16 emerald blocks**, in either direction. Choose a route, then review **You give**, **You receive**, and the collection location before confirming. Confirmation rechecks the ordinary currency currently in your inventory; the output waits in **Collect Items & Payments**. This is an item economy; Vault or another money plugin is not required. Player auction prices are chosen by their sellers, independently of the server shop.
++Exchange only makes change downward. Emeralds renew endlessly through villager trading, so converting them up into diamonds or netherite is deliberately not offered; see [MARKET_BALANCE.md](MARKET_BALANCE.md).
++
++The value is **1 netherite ingot = 4 diamond blocks = 16 emerald blocks**. Choose a route, then review **You give**, **You receive**, and the collection location before confirming. Confirmation rechecks the ordinary currency currently in your inventory; the output waits in **Collect Items & Payments**. This is an item economy; Vault or another money plugin is not required. Player auction prices are chosen by their sellers, independently of the server shop.
+ 
+ **Upgrade from 1.3.0:** buying a netherite ingot now costs four diamond blocks instead of one. Existing items and player-priced listings are retained. Previously prepared journal operations and existing deliveries keep their recorded amounts; this update does not reprice or rewrite them.
+ 
+diff --git a/docs/PATCH_NOTES.md b/docs/PATCH_NOTES.md
+new file mode 100644
+index 0000000..d0c9ad8
+--- /dev/null
++++ b/docs/PATCH_NOTES.md
+@@ -0,0 +1,31 @@
++# Patch notes (source patches on top of Ascension 1.5.0)
++
++None of these are built or released. They are source changes. Build with `gradle build` and run `gradle test` first.
++
++Apply in this order to `Ascension-1.5.0-source-undying-stonebreaker.zip`, or just use the newest zip, which already
++contains all of them.
++
++| # | Patch | Newest zip containing it | What it does |
++|---|---|---|---|
++| 1 | `patches/undying-stonebreaker.patch` | `Ascension-1.5.0-source-undying-stonebreaker.zip` | Undying ignores void and `/kill`; Stonebreaker extras respect protection plugins |
++| 2 | `patches/angler-fix-celebrations.patch` | `Ascension-1.5.0-source-angler-celebrations.zip` | Angler wait time now covers both Paper fishing timers; equip, level-up and rank-up animations |
++| 3 | `patches/market-balance.patch` | `Ascension-1.5.0-source-market-balance.zip` | One-way currency exchange; shop catalog v3 (no Elytra, Totem, Trident, raw diamonds); price floor |
++| 4 | `patches/market-audit-tideborn.patch` | `Ascension-1.5.0-source-market-audit-tideborn.zip` | Tideborn is water-only with a land alternative; market audit fixes; runnable SQL harness |
++
++```bash
++unzip Ascension-1.5.0-source-undying-stonebreaker.zip -d ascension && cd ascension
++git init -q && git apply ../patches/angler-fix-celebrations.patch ../patches/market-balance.patch ../patches/market-audit-tideborn.patch
++```
++
++## Tideborn (patch 4)
++
++Tidal Rush used to dash at half strength on land, which was a weaker copy of Trailblazer's Dash.
++
++- In water: unchanged. Rush forward and refill breath.
++- On land: grants Water Breathing and Dolphin's Grace for `land-effect-seconds` (default 30) so you can dive
++  prepared. It uses the same 30-second cooldown.
++- Servers updating from 1.5.0 get the new description and the `land-effect-seconds` setting added to
++  `titles.yml` automatically. A description you edited yourself is left alone, and an old `land-force-multiplier`
++  line is harmless and ignored.
++
++See [MARKET_BALANCE.md](MARKET_BALANCE.md) and [MARKET_AUDIT.md](MARKET_AUDIT.md) for the market work.
+diff --git a/docs/PLUGIN_REPORT.md b/docs/PLUGIN_REPORT.md
+index b72a3ae..08b7413 100644
+--- a/docs/PLUGIN_REPORT.md
++++ b/docs/PLUGIN_REPORT.md
+@@ -1,5 +1,9 @@
+ # Ascension 1.5.0 plugin report
+ 
++> **Source patches applied:** the shop product table and prices below are catalog v2 as released in 1.5.0. This source tree
++> ships catalog v3 (see [MARKET_BALANCE.md](MARKET_BALANCE.md)); the exchange is one-way and Tideborn's land ability changed.
++> The bundled `shop.yml` is the authority.
++
+ Copyright (c) 2026 Ayush Anand. Source available under the custom restricted [LICENSE.md](../LICENSE.md); this is not an open-source license. Personal modification is permitted by the owner's terms; public redistribution requires written permission. GitHub's platform viewing and fork rights remain subject to GitHub's terms. Read the license for the controlling terms.
+ 
+ Ascension provides 12 rank stages, 30 globally exclusive titles with three personal power levels each, a Chronicle interface, assigned hunts, weekly rank renewal, player auctions, item currency exchange, and a 150-product demand-priced shop. Text in menus, messages, title tags, and relic descriptions is presented without decorative text colors. Ability particles and sound are separate gameplay feedback.
+@@ -265,7 +269,7 @@ Claim quest requirements (all required):
+ 
+ ### 17. Tideborn — Tidal Rush
+ 
+-ID: `tideborn`. Activation: owner-bound relic click. Right-click the Ascension Relic to rush underwater and restore oxygen, or dash at half strength on land.
++ID: `tideborn`. Activation: owner-bound relic click. Right-click the Ascension Relic to rush through water and restore oxygen. On land it grants Water Breathing and Dolphin's Grace instead, so you can dive prepared.
+ 
+ Claim quest requirements (all required):
+ 
+@@ -274,9 +278,9 @@ Claim quest requirements (all required):
+ 
+ | Personal level | Total title XP | Cooldown | Effective power settings |
+ |---|---:|---|---|
+-| 1 | 0 | 30 seconds | `horizontal-force` = 1.8; `land-force-multiplier` = 0.5; `vertical-force` = 0.25 |
+-| 2 | 1000 | 30 seconds | `horizontal-force` = 2; `land-force-multiplier` = 0.5; `vertical-force` = 0.25 |
+-| 3 | 3000 | 30 seconds | `horizontal-force` = 2.2; `land-force-multiplier` = 0.5; `vertical-force` = 0.25 |
++| 1 | 0 | 30 seconds | `horizontal-force` = 1.8; `vertical-force` = 0.25; `land-effect-seconds` = 30 |
++| 2 | 1000 | 30 seconds | `horizontal-force` = 2; `vertical-force` = 0.25; `land-effect-seconds` = 30 |
++| 3 | 3000 | 30 seconds | `horizontal-force` = 2.2; `vertical-force` = 0.25; `land-effect-seconds` = 30 |
+ 
+ ### 18. Beastbane — Executioner
+ 
+@@ -493,7 +497,7 @@ The 150-item approved preview has ten categories of 15 products. Every row below
+ 
+ Java uses paginated chest menus; Floodgate uses paginated forms. Java countdowns refresh while browsing; Bedrock forms are snapshots and require Refresh Stock & Timers. Bundle delivery waits in Collect Items & Payments. The auction section permits player-priced listings in emerald blocks, diamond blocks or netherite ingots, up to ten active listings per player. Confirm before purchase, cancellation or exchange. Full inventory leaves delivery in collection.
+ 
+-Exchange value: 1 netherite ingot = 4 diamond blocks = 16 emerald blocks in either direction. Only ordinary unmodified currency is spent. Vault is unnecessary. Trading pauses after combat; journal recovery protects interrupted operations and ambiguous snapshots require administrator review rather than guessing.
++Exchange value: 1 netherite ingot = 4 diamond blocks = 16 emerald blocks; exchange only converts downward. Only ordinary unmodified currency is spent. Vault is unnecessary. Trading pauses after combat; journal recovery protects interrupted operations and ambiguous snapshots require administrator review rather than guessing.
+ 
+ ### PvP & combat
+ 
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java b/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
+index a572962..f459e45 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
+@@ -1838,17 +1838,23 @@ public final class TitleAbilityListener implements Listener, SessionHook {
+             return;
+         }
+         TitleDefinition title = title(session, id);
+-        boolean inWater = owner.isInWater();
+-        double force = title.abilitySetting("horizontal-force", underwater ? 1.8 : 1.6);
+-        if (underwater && !inWater) {
+-            force *= title.abilitySetting("land-force-multiplier", 0.5);
++        if (underwater && !owner.isInWater()) {
++            // Tideborn's rush is water-only; on land it prepares a dive instead of copying Trailblazer's dash.
++            applyTidalWard(owner, title);
++            owner.getWorld().spawnParticle(Particle.BUBBLE, owner.getLocation().add(0, 1, 0),
++                    24, 0.4, 0.6, 0.4, 0.05);
++            owner.playSound(owner.getLocation(), Sound.ENTITY_PLAYER_SPLASH, 0.8f, 1.2f);
++            start(session, key, cooldown(title, 30), now);
++            activated(owner, id);
++            return;
+         }
++        double force = title.abilitySetting("horizontal-force", underwater ? 1.8 : 1.6);
+         Vector direction = owner.getLocation().getDirection().normalize()
+                 .multiply(force);
+         direction.setY(Math.max(direction.getY(), title.abilitySetting("vertical-force", 0.25)));
+         owner.setVelocity(direction);
+         owner.setFallDistance(0);
+-        if (underwater && inWater) {
++        if (underwater) {
+             owner.setRemainingAir(owner.getMaximumAir());
+             owner.getWorld().spawnParticle(Particle.BUBBLE, owner.getLocation().add(0, 1, 0),
+                     24, 0.4, 0.4, 0.4, 0.1);
+@@ -1859,6 +1865,13 @@ public final class TitleAbilityListener implements Listener, SessionHook {
+         activated(owner, id);
+     }
+ 
++    /** Tidal Rush on land: Water Breathing and Dolphin's Grace, so the next dive starts with full effect. */
++    static void applyTidalWard(Player owner, TitleDefinition title) {
++        int ticks = effectTicks(title.abilitySetting("land-effect-seconds", 30));
++        owner.addPotionEffect(new PotionEffect(PotionEffectType.WATER_BREATHING, ticks, 0, false, true, true));
++        owner.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, ticks, 0, false, true, true));
++    }
++
+     private int damageEligibleTargets(Player owner, double radius, double damage) {
+         int hits = 0;
+         for (Entity entity : owner.getNearbyEntities(radius, radius, radius)) {
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java b/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java
+index 7c28aa3..31b5c6f 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java
+@@ -557,6 +557,7 @@ public final class ConfigLoader {
+                 case "beastbane" -> "Automatically strike a hostile mob or eligible player at 8 HP or less for 14 damage.";
+                 case "stormbringer" -> "Right-click the title ability stick to strike the closest eligible player within 50 blocks with lightning.";
+                 case "titan" -> "Right-click the title ability stick to create a damaging ground-slam wave.";
++                case "tideborn" -> "Right-click the Ascension Relic to rush underwater and restore oxygen, or dash at half strength on land.";
+                 default -> null;
+             };
+             if ((oldDescription != null && oldDescription.equals(ability.get("description")))
+@@ -613,7 +614,7 @@ public final class ConfigLoader {
+                     changed += addSetting(settings, "illager-damage-health-points", 12);
+                     changed += addSetting(settings, "raid-strength-seconds", 8);
+                 }
+-                case "tideborn" -> changed += addSetting(settings, "land-force-multiplier", 0.5);
++                case "tideborn" -> changed += addSetting(settings, "land-effect-seconds", 30);
+                 case "beastbane" -> {
+                     if (!settings.containsKey("health-threshold-health-points")) {
+                         double old = doubleVal(settings.get("health-threshold"), 0.2);
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java b/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java
+index c201673..ced1471 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java
+@@ -156,7 +156,7 @@ public final class TitleAbilityResolver {
+             case "soul_reaper" -> "maximum-souls=10,heal-health-points=4";
+             case "bounty_hunter" -> "range=50,duration-seconds=5";
+             case "raidbreaker" -> "radius=8,combat-damage-health-points=8,illager-damage-health-points=12,knockback=1.2,raid-strength-seconds=8";
+-            case "tideborn" -> "horizontal-force=1.8,land-force-multiplier=0.5,vertical-force=0.25";
++            case "tideborn" -> "horizontal-force=1.8,vertical-force=0.25,land-effect-seconds=30";
+             case "beastbane" -> "health-threshold-health-points=8,execute-damage-health-points=14";
+             case "emberforge" -> "duration-seconds=8,bonus-damage-health-points=5,fire-seconds=8";
+             case "alchemist" -> "duration-multiplier=1.25,splash-radius=5";
+@@ -236,7 +236,7 @@ public final class TitleAbilityResolver {
+             case "soul_reaper" -> "Store up to " + v.apply("maximum-souls") + " souls from valid kills; consume one to heal " + v.apply("heal-health-points") + " HP.";
+             case "bounty_hunter" -> "Reveal your assigned target within " + v.apply("range") + " blocks for " + v.apply("duration-seconds") + " seconds.";
+             case "raidbreaker" -> "Repel eligible targets within " + v.apply("radius") + " blocks; gain Strength for " + v.apply("raid-strength-seconds") + " seconds during a raid.";
+-            case "tideborn" -> "Rush underwater with " + v.apply("horizontal-force") + " force and restore oxygen; land force is " + format(s.get("horizontal-force") * s.get("land-force-multiplier")) + ".";
++            case "tideborn" -> "Rush through water with " + v.apply("horizontal-force") + " force and restore oxygen; on land gain Water Breathing and Dolphin's Grace for " + v.apply("land-effect-seconds") + " seconds.";
+             case "beastbane" -> "Automatically execute an eligible target at " + v.apply("health-threshold-health-points") + " effective HP or less for " + v.apply("execute-damage-health-points") + " damage.";
+             case "emberforge" -> "Gain " + v.apply("bonus-damage-health-points") + " bonus attack damage for " + v.apply("duration-seconds") + " seconds; ignite hits for " + v.apply("fire-seconds") + " seconds.";
+             case "alchemist" -> "Thrown potion durations are multiplied by " + v.apply("duration-multiplier") + "; splash radius is " + v.apply("splash-radius") + " blocks.";
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/market/MarketCommand.java b/src/main/java/com/leadsystems/minecraft/ascension/market/MarketCommand.java
+index ba915cd..36f1d39 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/market/MarketCommand.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/market/MarketCommand.java
+@@ -27,8 +27,9 @@ public final class MarketCommand implements CommandExecutor, TabCompleter {
+                 else { market.recover(target); sender.sendMessage("Recovery queued."); }
+                 return true;
+             }
+-            if (action.equals("resolve") && args.length == 3 && List.of("commit", "abort").contains(args[2])) {
+-                market.resolve(sender, args[1], args[2].equals("commit")); return true;
++            String decision = args.length == 3 ? args[2].toLowerCase(Locale.ROOT) : "";
++            if (action.equals("resolve") && List.of("commit", "abort").contains(decision)) {
++                market.resolve(sender, args[1], decision.equals("commit")); return true;
+             }
+             sender.sendMessage("/auction pending | recover <online player> | resolve <operation id> <commit|abort>");
+             return true;
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/market/MarketListener.java b/src/main/java/com/leadsystems/minecraft/ascension/market/MarketListener.java
+index 0ebcd7b..2e7dd5f 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/market/MarketListener.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/market/MarketListener.java
+@@ -61,8 +61,10 @@ public final class MarketListener implements Listener {
+             MarketService.tell(e.getPlayer(), "Wait for your inventory transaction to finish.");
+         }
+     }
++    /** Only damage dealt by another entity is combat; fire, falls, hunger and drowning must not freeze trading. */
+     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true) public void damage(EntityDamageEvent e) {
+-        if (e.getEntity() instanceof Player p && e.getFinalDamage() > 0) market.combat(p.getUniqueId());
++        if (e instanceof EntityDamageByEntityEvent && e.getEntity() instanceof Player p && e.getFinalDamage() > 0)
++            market.combat(p.getUniqueId());
+     }
+     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true) public void attack(EntityDamageByEntityEvent e) {
+         if (e.getFinalDamage() <= 0) return;
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/market/MarketMenus.java b/src/main/java/com/leadsystems/minecraft/ascension/market/MarketMenus.java
+index a5bc886..0ce07f6 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/market/MarketMenus.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/market/MarketMenus.java
+@@ -29,7 +29,7 @@ public final class MarketMenus {
+                 open("My Listings", "Manage your items currently for sale.", Material.WRITABLE_BOOK, "market_mine:0"),
+                 open("Server Shop", "Limited stock; prices respond to demand.", Material.IRON_BLOCK, "market_shop"),
+                 open("Collect Items & Payments", "Claim purchases and sale payments.", Material.HOPPER, "market_deliveries:0"),
+-                open("Exchange Currency", "Convert currency in either direction.", Material.DIAMOND, "market_exchange"),
++                open("Exchange Currency", "Break larger currency into smaller change.", Material.DIAMOND, "market_exchange"),
+                 nav("Back to Ascension main", Material.ARROW, "main")), false);
+     }
+ 
+diff --git a/src/main/resources/titles.yml b/src/main/resources/titles.yml
+index 22e581d..da434a3 100644
+--- a/src/main/resources/titles.yml
++++ b/src/main/resources/titles.yml
+@@ -360,9 +360,9 @@ titles:
+         label: "Activate a Conduit"
+     ability:
+       name: Tidal Rush
+-      description: "Right-click the Ascension Relic to rush underwater and restore oxygen, or dash at half strength on land."
++      description: "Right-click the Ascension Relic to rush through water and restore oxygen. On land it grants Water Breathing and Dolphin's Grace instead, so you can dive prepared."
+       cooldown-seconds: 30
+-      settings: { horizontal-force: 1.8, land-force-multiplier: 0.5, vertical-force: 0.25 }
++      settings: { horizontal-force: 1.8, vertical-force: 0.25, land-effect-seconds: 30.0 }
+     auto-award: false
+ 
+   - id: beastbane
+diff --git a/src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java b/src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java
+index 8ca8e28..39f850c 100644
+--- a/src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java
++++ b/src/test/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListenerTest.java
+@@ -224,6 +224,32 @@ class TitleAbilityListenerTest {
+         assertEquals(0, TitleAbilityListener.amplifier(1));
+     }
+ 
++    @Test
++    void tidalWardOnLandGrantsWaterBreathingAndDolphinsGraceForTheConfiguredSeconds() {
++        Player owner = mock(Player.class);
++        TitleDefinition tideborn = new TitleDefinition("tideborn", 17, "Tideborn", "#26a6a1", "",
++                java.util.List.of(), "Tidal Rush", "", 30, Map.of("land-effect-seconds", 12.0), false);
++        TitleAbilityListener.applyTidalWard(owner, tideborn);
++
++        ArgumentCaptor<PotionEffect> effects = ArgumentCaptor.forClass(PotionEffect.class);
++        verify(owner, org.mockito.Mockito.times(2)).addPotionEffect(effects.capture());
++        Map<PotionEffectType, PotionEffect> byType = effects.getAllValues().stream()
++                .collect(java.util.stream.Collectors.toMap(PotionEffect::getType, effect -> effect));
++        assertEquals(java.util.Set.of(PotionEffectType.WATER_BREATHING, PotionEffectType.DOLPHINS_GRACE), byType.keySet());
++        assertTrue(byType.values().stream().allMatch(effect -> effect.getDuration() == 240 && effect.getAmplifier() == 0));
++    }
++
++    @Test
++    void tidebornWithoutTheLandSettingStillGetsThirtySecondsFromTheFallback() {
++        Player owner = mock(Player.class);
++        TitleDefinition legacy = new TitleDefinition("tideborn", 17, "Tideborn", "#26a6a1", "",
++                java.util.List.of(), "Tidal Rush", "", 30, Map.of("land-force-multiplier", 0.5), false);
++        TitleAbilityListener.applyTidalWard(owner, legacy);
++        ArgumentCaptor<PotionEffect> effects = ArgumentCaptor.forClass(PotionEffect.class);
++        verify(owner, org.mockito.Mockito.times(2)).addPotionEffect(effects.capture());
++        assertTrue(effects.getAllValues().stream().allMatch(effect -> effect.getDuration() == 600));
++    }
++
+     @Test
+     void ascendantAppliesExactThirtySecondBuffsEvenWithLegacySettings() {
+         Player owner = mock(Player.class);
+diff --git a/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java b/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java
+index baa1e86..f3dbb1e 100644
+--- a/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java
++++ b/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java
+@@ -268,6 +268,37 @@ class ConfigLoaderTest {
+                 upgraded.get("description"));
+     }
+ 
++    @Test
++    void releasedTidebornDescriptionUpgradesOnceAndGainsTheLandEffectSettingWhileCustomTextSurvives() {
++        YamlConfiguration configured = defaults().get("titles.yml");
++        YamlConfiguration bundled = defaults().get("titles.yml");
++        java.util.List<Map<?, ?>> rows = configured.getMapList("titles");
++        Map<String, Object> tideborn = null;
++        for (Map<?, ?> row : rows) {
++            if ("tideborn".equals(row.get("id"))) {
++                @SuppressWarnings("unchecked") Map<String, Object> ability = (Map<String, Object>) row.get("ability");
++                tideborn = ability;
++            }
++        }
++        assertNotNull(tideborn);
++        tideborn.put("description",
++                "Right-click the Ascension Relic to rush underwater and restore oxygen, or dash at half strength on land.");
++        tideborn.put("settings", Map.of("horizontal-force", 1.8, "land-force-multiplier", 0.5, "vertical-force", 0.25));
++        configured.set("titles", rows);
++
++        assertEquals(2, ConfigLoader.migrateTitleBalance(configured, bundled));
++        assertEquals(0, ConfigLoader.migrateTitleBalance(configured, bundled));
++        Map<?, ?> upgraded = null;
++        for (Map<?, ?> row : configured.getMapList("titles")) if ("tideborn".equals(row.get("id"))) upgraded = (Map<?, ?>) row.get("ability");
++        assertNotNull(upgraded);
++        assertTrue(String.valueOf(upgraded.get("description")).contains("Water Breathing"));
++        assertEquals(30, ((Number) ((Map<?, ?>) upgraded.get("settings")).get("land-effect-seconds")).intValue());
++        assertEquals(0.5, ((Number) ((Map<?, ?>) upgraded.get("settings")).get("land-force-multiplier")).doubleValue());
++
++        tideborn.put("description", "My custom tide text");
++        assertEquals(0, ConfigLoader.migrateTitleBalance(configured, bundled));
++    }
++
+     @Test
+     void priorStormAndTitanDefaultsUpgradeOnceWhileCustomDamageSurvives() {
+         YamlConfiguration configured = defaults().get("titles.yml");
+diff --git a/src/test/java/com/leadsystems/minecraft/ascension/market/MarketInventoryTest.java b/src/test/java/com/leadsystems/minecraft/ascension/market/MarketInventoryTest.java
+index 17c0890..4e1163c 100644
+--- a/src/test/java/com/leadsystems/minecraft/ascension/market/MarketInventoryTest.java
++++ b/src/test/java/com/leadsystems/minecraft/ascension/market/MarketInventoryTest.java
+@@ -32,6 +32,19 @@ class MarketInventoryTest {
+                 PersistentDataType.STRING, "player"));
+         assertFalse(MarketMenus.isSellable(bound)); assertTrue(MarketMenus.isSellable(named));
+     }
++    @Test void exchangeMenuOffersOnlyDownwardChangeAndSaysSo() {
++        var screen = MarketMenus.exchange();
++        var routes = screen.buttons().stream().filter(b -> !b.nav()).toList();
++        assertEquals(3, routes.size());
++        assertTrue(routes.stream().allMatch(b -> b.arg().startsWith("market_exchange_confirm:")));
++        assertTrue(routes.stream().noneMatch(b -> com.leadsystems.minecraft.ascension.text.Messages.plain(b.label())
++                .startsWith("4 Emerald Blocks") || com.leadsystems.minecraft.ascension.text.Messages.plain(b.label())
++                .startsWith("16 Emerald Blocks")));
++        var home = MarketMenus.home().buttons().stream()
++                .filter(b -> b.arg().equals("market_exchange")).findFirst().orElseThrow();
++        assertTrue(home.lore().stream().noneMatch(line -> com.leadsystems.minecraft.ascension.text.Messages.plain(line)
++                .contains("either direction")));
++    }
+     @Test void largeMailPaymentSplitsIntoLegalStacksWithoutOverflow() {
+         ItemStack[] after = MarketInventory.credit(new ItemStack[3], new ItemStack(Material.EMERALD_BLOCK, 150));
+         assertNotNull(after); assertEquals(64, after[0].getAmount()); assertEquals(64, after[1].getAmount());
+diff --git a/tools/market-sql-harness/MarketSqlHarness.java b/tools/market-sql-harness/MarketSqlHarness.java
+new file mode 100644
+index 0000000..6e9e798
+--- /dev/null
++++ b/tools/market-sql-harness/MarketSqlHarness.java
+@@ -0,0 +1,268 @@
++import com.leadsystems.minecraft.ascension.market.DynamicShopRepository;
++import com.leadsystems.minecraft.ascension.market.DynamicShopRepository.Offer;
++import com.leadsystems.minecraft.ascension.market.DynamicShopRepository.Product;
++import com.leadsystems.minecraft.ascension.market.MarketRepository;
++import com.leadsystems.minecraft.ascension.market.MarketRepository.Operation;
++import org.yaml.snakeyaml.Yaml;
++
++import java.io.InputStream;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.sql.Connection;
++import java.sql.DriverManager;
++import java.sql.Statement;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++import java.util.UUID;
++
++/** Runs the real repository classes against real SQLite. Prints PASS/FAIL per check; exit 1 on any FAIL. */
++public final class MarketSqlHarness {
++    static int failures, checks;
++    static final byte[] INV = {1, 2, 3};
++
++    static void check(String name, boolean ok) {
++        checks++;
++        if (!ok) failures++;
++        System.out.println((ok ? "PASS " : "FAIL ") + name);
++    }
++
++    @SuppressWarnings("unchecked")
++    static List<Product> catalog(Path file) throws Exception {
++        try (InputStream in = Files.newInputStream(file)) {
++            Map<String, Object> root = new Yaml().load(in);
++            Map<String, Object> restock = (Map<String, Object>) root.get("restock");
++            Map<String, Object> price = (Map<String, Object>) root.get("price");
++            List<Product> out = new ArrayList<>();
++            ((Map<String, Map<String, Object>>) root.get("products")).forEach((id, p) -> out.add(new Product(id,
++                    (String) p.get("material"), (Integer) p.get("quantity"), (String) p.get("label"),
++                    (Integer) p.get("base-price"), (Integer) p.get("min-price"), (Integer) p.get("max-price"),
++                    (Integer) price.get("purchase-step"), (Integer) price.get("restock-drop"),
++                    (Integer) p.get("max-stock"), (Integer) p.get("restock-amount"),
++                    (Integer) restock.get("min-seconds"), (Integer) restock.get("max-seconds"))));
++            return out;
++        }
++    }
++
++    static Connection db(Path resources) throws Exception {
++        Connection c = DriverManager.getConnection("jdbc:sqlite::memory:");
++        for (String v : List.of("V11__market.sql", "V12__dynamic_shop.sql")) {
++            String sql = Files.readString(resources.resolve("db/sqlite/" + v));
++            try (Statement s = c.createStatement()) {
++                for (String part : sql.split(";\\s*\\r?\\n")) if (!part.isBlank()) s.execute(part);
++            }
++        }
++        return c;
++    }
++
++    static Operation op(UUID actor, String kind, String ref, String currency, int price, byte[] item, String itemName) {
++        return new Operation(UUID.randomUUID().toString(), actor, kind, ref, INV, new byte[] {9, 9}, item, itemName,
++                currency, price, "P" + actor.toString().substring(0, 4), 1_000L);
++    }
++
++    static Offer find(DynamicShopRepository shop, Connection c, String id) throws Exception { return shop.find(c, id); }
++
++    static boolean buy(MarketRepository market, Connection c, UUID who, Offer o, long now, boolean commit) throws Exception {
++        Operation op = new Operation(UUID.randomUUID().toString(), who, "SHOP", o.product().id() + "|" + o.currentPrice(),
++                INV, new byte[] {9}, new byte[] {7}, o.product().label(), "EMERALD_BLOCK", o.currentPrice(), "Buyer", now);
++        if (!market.prepare(c, op)) return false;
++        return commit ? market.commit(c, op.id()) : market.abort(c, op.id());
++    }
++
++    public static void main(String[] args) throws Exception {
++        Path res = Path.of(args[0]);
++        List<Product> v2 = catalog(res.resolve("shop-catalog-v2.yml"));
++        List<Product> v3 = catalog(res.resolve("shop.yml"));
++        var market = new MarketRepository();
++        var shop = new DynamicShopRepository();
++        long t0 = 1_000_000L;
++        java.util.function.IntBinaryOperator rnd = (lo, hi) -> lo;
++
++        // ---- Shop lifecycle on the v3 catalog -------------------------------------------------
++        try (Connection c = db(res)) {
++            shop.seed(c, v3, t0, rnd);
++            check("v3 seeds 150 enabled products", shop.offers(c).size() == 150);
++            Offer chest = find(shop, c, "diamond_chestplate");
++            check("diamond chestplate starts at 10 blocks, stock 4", chest.currentPrice() == 10 && chest.stock() == 4);
++            UUID a = UUID.randomUUID(), b = UUID.randomUUID();
++            check("purchase 1 commits", buy(market, c, a, find(shop, c, "diamond_chestplate"), t0, true));
++            Offer after = find(shop, c, "diamond_chestplate");
++            check("price rises 10 -> 11, stock 4 -> 3, not reserved", after.currentPrice() == 11 && after.stock() == 3 && !after.reserved());
++            for (int i = 0; i < 5; i++) buy(market, c, a, find(shop, c, "diamond_chestplate"), t0, true);
++            Offer capped = find(shop, c, "diamond_chestplate");
++            check("price is capped at 20 (double the start) and stock never negative", capped.currentPrice() <= 20 && capped.stock() == 0);
++            check("sold-out product cannot be bought", !buy(market, c, b, capped, t0, true));
++            long due = t0 + 7_200_000L + 1;
++            check("restock adds stock, lowers price, stays within bounds", shop.restock(c, due, rnd) > 0);
++            Offer re = find(shop, c, "diamond_chestplate");
++            check("after restock: stock +2, price -1", re.stock() == 2 && re.currentPrice() == capped.currentPrice() - 1);
++            for (int i = 0; i < 40; i++) shop.restock(c, due + i * 8_000_000L, rnd);
++            check("price falls back to the floor (10), never below", find(shop, c, "diamond_chestplate").currentPrice() == 10);
++            check("stock refills to max 4 only", find(shop, c, "diamond_chestplate").stock() == 4);
++
++            // two buyers, one bundle
++            Offer last = find(shop, c, "diamond_sword");
++            for (int i = 0; i < 3; i++) buy(market, c, a, find(shop, c, "diamond_sword"), due, true);
++            Offer one = find(shop, c, "diamond_sword");
++            Operation first = new Operation(UUID.randomUUID().toString(), a, "SHOP", one.product().id() + "|" + one.currentPrice(), INV, INV, new byte[] {1}, "x", "EMERALD_BLOCK", one.currentPrice(), "A", due);
++            Operation second = new Operation(UUID.randomUUID().toString(), b, "SHOP", one.product().id() + "|" + one.currentPrice(), INV, INV, new byte[] {1}, "x", "EMERALD_BLOCK", one.currentPrice(), "B", due);
++            check("last bundle: first reservation wins", market.prepare(c, first));
++            check("last bundle: second buyer refused (no oversell)", !market.prepare(c, second));
++            check("abort releases the reservation and returns the bundle", market.abort(c, first.id()) && find(shop, c, "diamond_sword").stock() == one.stock());
++            check("abort does not raise the price", find(shop, c, "diamond_sword").currentPrice() == one.currentPrice());
++            check("committing twice creates exactly one delivery", twice(market, c, b));
++            Statement s = c.createStatement();
++            var rs = s.executeQuery("SELECT COUNT(*) FROM market_deliveries WHERE id LIKE '%:shop'");
++            rs.next();
++            check("shop deliveries exist for each committed purchase", rs.getInt(1) > 5);
++        }
++
++        // ---- Migration 1.5.0 (v2) -> v3 against an in-use database ----------------------------
++        try (Connection c = db(res)) {
++            shop.seed(c, v2, t0, rnd);
++            UUID a = UUID.randomUUID();
++            for (int i = 0; i < 3; i++) buy(market, c, a, find(shop, c, "diamond_chestplate"), t0, true);
++            Offer worn = find(shop, c, "diamond_chestplate");
++            check("v2 chestplate was bought up to " + worn.currentPrice(), worn.currentPrice() == 8);
++            // an elytra purchase is mid-flight when the server is updated
++            Offer elytra = find(shop, c, "elytra");
++            Operation pending = new Operation(UUID.randomUUID().toString(), a, "SHOP", "elytra|" + elytra.currentPrice(), INV, INV, new byte[] {5}, "1 x Elytra", "EMERALD_BLOCK", elytra.currentPrice(), "A", t0);
++            check("elytra purchase prepared before the update", market.prepare(c, pending));
++            shop.seed(c, v3, t0 + 1000, rnd);
++            check("after update elytra, totem, trident, diamond are gone from the menu",
++                    shop.find(c, "elytra") == null && shop.find(c, "totem_of_undying") == null
++                            && shop.find(c, "trident") == null && shop.find(c, "diamond") == null);
++            check("new v3 products are present", shop.find(c, "spectral_arrow") != null && shop.find(c, "firework_rocket") != null
++                    && shop.find(c, "chainmail_chestplate") != null && shop.find(c, "flint") != null);
++            check("menu has exactly 150 products", shop.offers(c).size() == 150);
++            Offer clamped = find(shop, c, "diamond_chestplate");
++            check("chestplate price clamped into the v3 bounds [10,20] (was 8)", clamped.currentPrice() == 10);
++            check("stock clamped to the new max 4", clamped.stock() <= 4);
++            check("in-flight elytra purchase still commits and delivers after removal", market.commit(c, pending.id()));
++            var rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM market_deliveries WHERE id='" + pending.id() + ":shop'");
++            rs.next();
++            check("the buyer receives the elytra they paid for", rs.getInt(1) == 1);
++            // a worn-down price above the new cap must clamp down, not violate CHECK
++            c.createStatement().execute("UPDATE dynamic_shop_products SET current_price=3, stock=4 WHERE id='iron_sword'");
++            shop.seed(c, v3, t0 + 2000, rnd);
++            check("re-seeding an unchanged catalog is idempotent", shop.offers(c).size() == 150);
++        }
++
++        // ---- Currency exchange (journal rows) --------------------------------------------------
++        try (Connection c = db(res)) {
++            UUID a = UUID.randomUUID();
++            String[][] routes = {{"netherite_to_diamond", "NETHERITE_INGOT", "1"}, {"diamond_to_emerald", "DIAMOND_BLOCK", "1"}, {"netherite_to_emerald", "NETHERITE_INGOT", "1"}};
++            for (String[] r : routes) {
++                Operation o = op(a, "EXCHANGE", r[0], r[1], Integer.parseInt(r[2]), new byte[] {4}, "4 Diamond Blocks");
++                check(r[0] + " prepares", market.prepare(c, o));
++                check(r[0] + " second operation refused while one is pending", !market.prepare(c, op(a, "EXCHANGE", r[0], r[1], 1, new byte[] {4}, "x")));
++                check(r[0] + " commits", market.commit(c, o.id()));
++                check(r[0] + " recommit is harmless", market.commit(c, o.id()));
++                var rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM market_deliveries WHERE id='" + o.id() + ":exchange'");
++                rs.next();
++                check(r[0] + " creates exactly one delivery", rs.getInt(1) == 1);
++            }
++            Operation bad = op(a, "EXCHANGE", "x", "EMERALD_BLOCK", 0, new byte[] {1}, "x");
++            check("zero-price exchange refused", !market.prepare(c, bad));
++            Operation badCurrency = op(a, "EXCHANGE", "x", "GOLD_BLOCK", 4, new byte[] {1}, "x");
++            check("non-currency exchange refused", !market.prepare(c, badCurrency));
++            Operation abort = op(a, "EXCHANGE", "diamond_to_emerald", "DIAMOND_BLOCK", 1, new byte[] {4}, "4 Emerald Blocks");
++            market.prepare(c, abort);
++            check("aborted exchange makes no delivery", market.abort(c, abort.id()) && !market.commit(c, abort.id()));
++        }
++
++        // ---- Auction: sell / buy / cancel / claim ----------------------------------------------
++        try (Connection c = db(res)) {
++            UUID seller = UUID.randomUUID(), buyer = UUID.randomUUID();
++            List<String> ids = new ArrayList<>();
++            for (int i = 0; i < 10; i++) {
++                String listing = UUID.randomUUID().toString();
++                Operation sell = op(seller, "SELL", listing, "EMERALD_BLOCK", 5, new byte[] {8}, "1 x Thing");
++                check("listing " + (i + 1) + " accepted", market.prepare(c, sell) && market.commit(c, sell.id()));
++                ids.add(listing);
++            }
++            check("11th listing refused (limit 10)", !market.prepare(c, op(seller, "SELL", UUID.randomUUID().toString(), "EMERALD_BLOCK", 5, new byte[] {8}, "x")));
++            check("seller cannot buy their own listing", !market.prepare(c, op(seller, "BUY", ids.get(0), "EMERALD_BLOCK", 5, new byte[] {2}, "x")));
++            check("wrong price refused", !market.prepare(c, op(buyer, "BUY", ids.get(0), "EMERALD_BLOCK", 4, new byte[] {2}, "x")));
++            check("wrong currency refused", !market.prepare(c, op(buyer, "BUY", ids.get(0), "DIAMOND_BLOCK", 5, new byte[] {2}, "x")));
++            Operation buy = op(buyer, "BUY", ids.get(0), "EMERALD_BLOCK", 5, new byte[] {2}, "1 x Thing");
++            check("buyer reserves listing", market.prepare(c, buy));
++            check("another buyer cannot take a reserved listing", !market.prepare(c, op(UUID.randomUUID(), "BUY", ids.get(0), "EMERALD_BLOCK", 5, new byte[] {2}, "x")));
++            check("seller cannot cancel a reserved listing", !market.prepare(c, op(seller, "CANCEL", ids.get(0), null, 0, null, "x")));
++            check("buy commits", market.commit(c, buy.id()));
++            var rs = c.createStatement().executeQuery("SELECT owner_uuid FROM market_deliveries ORDER BY owner_uuid");
++            List<String> owners = new ArrayList<>(); while (rs.next()) owners.add(rs.getString(1));
++            check("buyer gets the item and seller gets the payment", owners.contains(buyer.toString()) && owners.contains(seller.toString()) && owners.size() == 2);
++            check("sold listing cannot be bought again", !market.prepare(c, op(UUID.randomUUID(), "BUY", ids.get(0), "EMERALD_BLOCK", 5, new byte[] {2}, "x")));
++            Operation cancel = op(seller, "CANCEL", ids.get(1), null, 0, null, "Cancelled listing");
++            check("seller cancels own listing", market.prepare(c, cancel) && market.commit(c, cancel.id()));
++            check("stranger cannot cancel someone else's listing", !market.prepare(c, op(buyer, "CANCEL", ids.get(2), null, 0, null, "x")));
++            var d = market.deliveries(c, buyer, 0, 10);
++            check("buyer sees one delivery", d.size() == 1);
++            Operation claim = op(buyer, "CLAIM", d.get(0).id(), null, 0, null, "claim");
++            check("claim prepares (reserved)", market.prepare(c, claim));
++            check("reserved delivery is hidden from list", market.deliveries(c, buyer, 0, 10).isEmpty());
++            check("stranger cannot claim it", !market.prepare(c, op(seller, "CLAIM", d.get(0).id(), null, 0, null, "x")));
++            check("claim commits and the delivery is gone", market.commit(c, claim.id()) && market.deliveries(c, buyer, 0, 10).isEmpty());
++            // partial claim keeps a remainder
++            var sd = market.deliveries(c, seller, 0, 10);
++            Operation partial = op(seller, "CLAIM", sd.get(0).id(), null, 0, new byte[] {3}, "partial");
++            check("seller has two deliveries before claiming (payment + returned listing)", sd.size() == 2);
++            String claimed = sd.get(0).id();
++            check("partial claim prepares and commits", market.prepare(c, partial) && market.commit(c, partial.id()));
++            var after = market.deliveries(c, seller, 0, 10);
++            check("partial claim keeps the delivery available with the remainder bytes",
++                    after.size() == 2 && after.stream().anyMatch(x -> x.id().equals(claimed) && java.util.Arrays.equals(x.item(), new byte[] {3})));
++            // abort path restores a listing
++            Operation buy2 = op(buyer, "BUY", ids.get(3), "EMERALD_BLOCK", 5, new byte[] {2}, "x");
++            market.prepare(c, buy2);
++            check("aborted buy returns the listing to the market", market.abort(c, buy2.id()) && market.listing(c, ids.get(3)) != null);
++            check("pending list empty after everything resolved", market.pending(c).isEmpty());
++        }
++
++        // ---- Paging and downtime catch-up ------------------------------------------------------
++        try (Connection c = db(res)) {
++            List<UUID> sellers = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
++            long at = 10_000;
++            for (UUID who : sellers) for (int i = 0; i < 10; i++) {
++                Operation sell = new Operation(UUID.randomUUID().toString(), who, "SELL", UUID.randomUUID().toString(), INV, INV,
++                        new byte[] {8}, "item", "EMERALD_BLOCK", 3, "S", at++);
++                market.prepare(c, sell); market.commit(c, sell.id());
++            }
++            check("browse page 0 returns 11 rows (10 + 1 lookahead)", market.listings(c, null, 0, 11).size() == 11);
++            check("browse page 2 returns the last 10", market.listings(c, null, 20, 11).size() == 10);
++            check("browse page 3 is empty", market.listings(c, null, 30, 11).isEmpty());
++            check("my listings shows only the owner's 10", market.listings(c, sellers.get(1), 0, 11).size() == 10);
++            check("newest listing first", market.listings(c, null, 0, 11).get(0).createdAt() > market.listings(c, null, 0, 11).get(10).createdAt());
++            check("negative offset is rejected safely", market.listings(c, null, -1, 11).isEmpty());
++        }
++        try (Connection c = db(res)) {
++            shop.seed(c, v3, t0, rnd);
++            long later = t0 + 3L * 24 * 3600 * 1000; // server was offline for three days
++            int total = 0, rounds = 0, changed;
++            while ((changed = shop.restock(c, later, rnd)) > 0 && rounds < 10) { total += changed; rounds++; }
++            check("all 150 overdue products restock exactly once after downtime", total == 150);
++            check("catch-up takes ceil(150/64)=3 scheduler ticks", rounds == 3);
++            var rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM dynamic_shop_products WHERE next_restock<=" + later);
++            rs.next();
++            check("nothing is still overdue afterwards", rs.getInt(1) == 0);
++            check("restocking never exceeds max stock or breaks price bounds", shop.offers(c).stream().allMatch(o ->
++                    o.stock() <= o.product().maxStock() && o.currentPrice() >= o.product().minPrice() && o.currentPrice() <= o.product().maxPrice()));
++        }
++
++        System.out.println("\n" + (checks - failures) + "/" + checks + " checks passed");
++        System.exit(failures == 0 ? 0 : 1);
++    }
++
++    static boolean twice(MarketRepository market, Connection c, UUID who) throws Exception {
++        var shop = new DynamicShopRepository();
++        Offer o = shop.find(c, "iron_sword");
++        Operation op = new Operation(UUID.randomUUID().toString(), who, "SHOP", "iron_sword|" + o.currentPrice(), INV, INV, new byte[] {1}, "x", "EMERALD_BLOCK", o.currentPrice(), "B", 5_000_000L);
++        if (!market.prepare(c, op)) return false;
++        boolean first = market.commit(c, op.id());
++        boolean again = market.commit(c, op.id());
++        var rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM market_deliveries WHERE id='" + op.id() + ":shop'");
++        rs.next();
++        return first && again && rs.getInt(1) == 1;
++    }
++}
+diff --git a/tools/market-sql-harness/README.md b/tools/market-sql-harness/README.md
+new file mode 100644
+index 0000000..87ad717
+--- /dev/null
++++ b/tools/market-sql-harness/README.md
+@@ -0,0 +1,13 @@
++# Market SQL harness
++
++`bash tools/market-sql-harness/run.sh` runs 86 checks on the real market storage code and the real SQLite
++schema (migrations V11 and V12), with no Paper server and no mocks:
++
++- shop purchases, price rises, restocks, price floor and cap, sold-out and last-bundle races
++- the 1.5.0 to catalog v3 migration on a database that is in use, including an in-flight purchase of a removed product
++- all three currency exchange routes, double commits and aborts
++- auction listing, buying, cancelling, claiming, partial claims, the 10-listing limit, paging
++- catch-up after server downtime (150 overdue products)
++
++It does not cover the Bukkit layer (menus, commands, inventories, Bedrock forms). Those need `gradle test`
++or a real server.
+diff --git a/tools/market-sql-harness/run.sh b/tools/market-sql-harness/run.sh
+new file mode 100755
+index 0000000..66d45f3
+--- /dev/null
++++ b/tools/market-sql-harness/run.sh
+@@ -0,0 +1,18 @@
++#!/usr/bin/env bash
++# Runs the real MarketRepository and DynamicShopRepository against a real in-memory SQLite database.
++# Needs only a JDK and internet access to Maven Central; it does not need Paper. Run from anywhere.
++set -euo pipefail
++cd "$(dirname "$0")/../.."
++LIB="$(mktemp -d)"
++trap 'rm -rf "$LIB"' EXIT
++BASE=https://repo1.maven.org/maven2
++curl -fsSL -o "$LIB/sqlite.jar"   "$BASE/org/xerial/sqlite-jdbc/3.47.0.0/sqlite-jdbc-3.47.0.0.jar"
++curl -fsSL -o "$LIB/slf4j.jar"    "$BASE/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar"
++curl -fsSL -o "$LIB/snakeyaml.jar" "$BASE/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar"
++mkdir "$LIB/out"
++M=src/main/java/com/leadsystems/minecraft/ascension
++javac -d "$LIB/out" -cp "$LIB/snakeyaml.jar" \
++  "$M/storage/Tx.java" "$M/storage/SqlTask.java" "$M/market/MarketRepository.java" \
++  "$M/market/DynamicShopRepository.java" tools/market-sql-harness/MarketSqlHarness.java
++java -cp "$LIB/out:$LIB/sqlite.jar:$LIB/slf4j.jar:$LIB/snakeyaml.jar" MarketSqlHarness src/main/resources \
++  2> >(grep -v '^SLF4J' >&2)
