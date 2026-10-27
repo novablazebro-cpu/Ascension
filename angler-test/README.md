@@ -11,7 +11,9 @@ Ascension plugin, so a cheap test server can run them without the title system.
 
 - `/equip angler` gives a relic stick and marks you Angler-equipped. Other titles are refused.
 - Right-click the relic: primes Deep Lure for 30 seconds (cooldown 20 seconds after a treasure catch).
-- The next cast while primed calls `FishHook#setWaitTime(wait-ticks)`, with `wait-ticks` from `config.yml` (default 60).
+- The next cast while primed pins both Paper fishing timers so the bite comes about `wait-ticks` ticks
+  (default 60) after the bobber lands: `setLureTime(20, 20)`, `setWaitTime(wait-ticks - 20)`, and
+  `setSkyInfluenced(false)` so a roof does not slow it down. A missed bite re-applies the same timers.
 - Every cast logs `LURED` and `BITE` timing from cast, in ms and ticks, to console and chat.
 - A treasure catch replaces the caught item with a `FISHING_TREASURE` loot roll and starts the cooldown.
 
@@ -39,7 +41,10 @@ Send back the console lines and the five bite times. Those numbers decide whethe
 ## Known limits
 
 - Equip state is in memory. A restart clears it, so run `/equip angler` again.
-- Paper's `setWaitTime(int)` sets the wait before a fish appears. Lure and the `LURED` phase run afterwards, so
-  the time to bite is not simply `wait-ticks`. That is what step 5 tests.
+- Paper 26.3 source: `setWaitTime(int)` sets only the first timer (`timeUntilLured`). After it, a separate
+  lure stage of 20-80 ticks runs before `BITE`. The old code set only the first timer, so a "60 tick" cast
+  really took about 80-140 ticks. The fix pins both. Times are counted from when the bobber lands in water,
+  not from the cast, so expect `BITE` a little later than `wait-ticks` in the chat timer.
+- Rain still speeds the countdown up (Paper's rain bonus is left on).
 - Nothing here has been compiled in the sandbox (the Paper repo is blocked there). The syntax check passed;
   a real build has not been run.

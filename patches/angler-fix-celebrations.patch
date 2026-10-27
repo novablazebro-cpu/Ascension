@@ -1,0 +1,366 @@
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/AscensionPlugin.java b/src/main/java/com/leadsystems/minecraft/ascension/AscensionPlugin.java
+index fb5f2a1..f888aa4 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/AscensionPlugin.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/AscensionPlugin.java
+@@ -3,6 +3,7 @@ package com.leadsystems.minecraft.ascension;
+ import com.leadsystems.minecraft.ascension.ability.AbilityListener;
+ import com.leadsystems.minecraft.ascension.ability.RankAbilityService;
+ import com.leadsystems.minecraft.ascension.ability.TitleAbilityListener;
++import com.leadsystems.minecraft.ascension.cosmetic.Celebrations;
+ import com.leadsystems.minecraft.ascension.ability.TitleAbilityItems;
+ import com.leadsystems.minecraft.ascension.api.AscensionApi;
+ import com.leadsystems.minecraft.ascension.audit.AuditLog;
+@@ -188,6 +189,9 @@ public class AscensionPlugin extends JavaPlugin {
+             titleAbilities.reconcileLevel(player, session);
+             abilityItems.refreshLevel(player, session);
+         });
++        Celebrations celebrations = new Celebrations(this, config::get);
++        titleXp.setOnLevelUp(celebrations::titleLevelUp);
++        titles.setOnEquipped(celebrations::titleEquipped);
+         progress.setTitleXp(titleXp);
+         AdminService admin = new AdminService(sessions, storage, repo, main, config::get, messages, audit, titles);
+ 
+@@ -215,6 +219,7 @@ public class AscensionPlugin extends JavaPlugin {
+         pm.registerEvents(deathless, this);
+         pm.registerEvents(new AbilityListener(abilities, sessions, mobs, main, config::get), this);
+         pm.registerEvents(titleAbilities, this);
++        pm.registerEvents(celebrations, this);
+         pm.registerEvents(abilityItems, this);
+         pm.registerEvents(new MarketListener(market), this);
+ 
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java b/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
+index 42ce0bb..a572962 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
+@@ -36,6 +36,7 @@ import org.bukkit.event.block.BlockBreakEvent;
+ import org.bukkit.event.block.BlockDropItemEvent;
+ import org.bukkit.event.block.BlockReceiveGameEvent;
+ import org.bukkit.entity.Entity;
++import org.bukkit.entity.FishHook;
+ import org.bukkit.entity.Item;
+ import org.bukkit.entity.LivingEntity;
+ import org.bukkit.entity.Mob;
+@@ -975,6 +976,18 @@ public final class TitleAbilityListener implements Listener, SessionHook {
+             }
+             return;
+         }
++        boolean deepLureHook = event.getHook().getUniqueId().equals(deepLureHooks.get(owner.getUniqueId()));
++        if (event.getState() == PlayerFishEvent.State.FAILED_ATTEMPT && deepLureHook && equipped(session, "angler")) {
++            // A missed bite zeroes both timers; without this the next tick rolls a normal 100-600 tick wait.
++            pinDeepLure(event.getHook(), lureDefinitions.getOrDefault(owner.getUniqueId(), title(session, "angler")));
++            return;
++        }
++        if (deepLureHook && (event.getState() == PlayerFishEvent.State.REEL_IN
++                || event.getState() == PlayerFishEvent.State.IN_GROUND
++                || event.getState() == PlayerFishEvent.State.CAUGHT_ENTITY)) {
++            deepLureHooks.remove(owner.getUniqueId());
++            return;
++        }
+         if (event.getState() != PlayerFishEvent.State.FISHING) return;
+         Long primedUntil = deepLureUntil.get(owner.getUniqueId());
+         if (!equipped(session, "angler") || primedUntil == null || primedUntil < now
+@@ -985,13 +998,25 @@ public final class TitleAbilityListener implements Listener, SessionHook {
+             return;
+         }
+         deepLureHooks.put(owner.getUniqueId(), event.getHook().getUniqueId());
+-        int ticks = Math.max(1, (int) lureDefinitions.getOrDefault(owner.getUniqueId(), title(session, "angler")).abilitySetting("wait-ticks", 60));
+-        event.getHook().setWaitTime(ticks);
++        pinDeepLure(event.getHook(), lureDefinitions.getOrDefault(owner.getUniqueId(), title(session, "angler")));
+         owner.getWorld().spawnParticle(Particle.SPLASH, event.getHook().getLocation(),
+                 20, 0.35, 0.15, 0.35, 0.05);
+         owner.playSound(owner.getLocation(), Sound.ENTITY_FISHING_BOBBER_SPLASH, 1f, 1.2f);
+     }
+ 
++    /*
++     * Paper runs two timers before a bite: setWaitTime(int) sets only the first (timeUntilLured), then a
++     * separate 20-80 tick lure stage starts. wait-ticks is the whole cast-to-bite time, so it is split
++     * across both stages, and a roof no longer halves the countdown.
++     */
++    private static void pinDeepLure(FishHook hook, TitleDefinition definition) {
++        int total = Math.max(2, (int) definition.abilitySetting("wait-ticks", 60));
++        int lure = Math.min(20, total / 2);
++        hook.setLureTime(lure, lure);
++        hook.setWaitTime(total - lure);
++        hook.setSkyInfluenced(false);
++    }
++
+     private static ItemStack rollTreasure(Location location) {
+         var loot = LootTables.FISHING_TREASURE.getLootTable().populateLoot(ThreadLocalRandom.current(),
+                 new LootContext.Builder(location).build());
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/cosmetic/Celebrations.java b/src/main/java/com/leadsystems/minecraft/ascension/cosmetic/Celebrations.java
+new file mode 100644
+index 0000000..4414c11
+--- /dev/null
++++ b/src/main/java/com/leadsystems/minecraft/ascension/cosmetic/Celebrations.java
+@@ -0,0 +1,171 @@
++package com.leadsystems.minecraft.ascension.cosmetic;
++
++import com.leadsystems.minecraft.ascension.api.event.RankAdvancedEvent;
++import com.leadsystems.minecraft.ascension.config.ConfigSnapshot;
++import com.leadsystems.minecraft.ascension.domain.rank.RankStage;
++import com.leadsystems.minecraft.ascension.domain.title.TitleDefinition;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.TextColor;
++import net.kyori.adventure.text.format.TextDecoration;
++import net.kyori.adventure.title.Title;
++import org.bukkit.Color;
++import org.bukkit.Location;
++import org.bukkit.Particle;
++import org.bukkit.Sound;
++import org.bukkit.World;
++import org.bukkit.entity.Player;
++import org.bukkit.event.EventHandler;
++import org.bukkit.event.EventPriority;
++import org.bukkit.event.Listener;
++import org.bukkit.plugin.Plugin;
++import org.bukkit.scheduler.BukkitRunnable;
++
++import java.time.Duration;
++import java.util.function.Supplier;
++import java.util.logging.Level;
++
++/**
++ * Short visual celebrations for title equips, title level-ups and rank advances: an on-screen title
++ * plus a particle animation in the title's or rank's own colour. Each animation is one task that
++ * cancels itself after at most two seconds or when the player leaves, so nothing outlives the moment.
++ * Cosmetics never break gameplay: a failure is logged and the animation is dropped.
++ */
++public final class Celebrations implements Listener {
++
++    private static final Color FALLBACK = Color.fromRGB(0xF5D76E);
++    private static final Title.Times TIMES = Title.Times.times(
++            Duration.ofMillis(250), Duration.ofMillis(1800), Duration.ofMillis(600));
++
++    private final Plugin plugin;
++    private final Supplier<ConfigSnapshot> config;
++
++    public Celebrations(Plugin plugin, Supplier<ConfigSnapshot> config) {
++        this.plugin = plugin;
++        this.config = config;
++    }
++
++    /** A rising double helix in the title's colour, then a burst at head height. */
++    public void titleEquipped(Player player, TitleDefinition title) {
++        safely(() -> {
++            Color color = color(title.color());
++            player.showTitle(Title.title(
++                    Component.text(title.name(), textColor(title.color())).decorate(TextDecoration.BOLD),
++                    Component.text(title.abilityName(), NamedTextColor.GRAY), TIMES));
++            player.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.4f);
++            animate(player, 30, (world, base, tick) -> {
++                double progress = tick / 30.0;
++                double y = progress * 2.2;
++                double radius = 0.9 - progress * 0.35;
++                for (int strand = 0; strand < 2; strand++) {
++                    double angle = tick * 0.42 + strand * Math.PI;
++                    world.spawnParticle(Particle.DUST, base.clone().add(Math.cos(angle) * radius, y,
++                            Math.sin(angle) * radius), 1, 0, 0, 0, 0, new Particle.DustOptions(color, 1.2f));
++                }
++                if (tick == 29) {
++                    world.spawnParticle(Particle.END_ROD, base.clone().add(0, 2.2, 0), 24, 0.25, 0.25, 0.25, 0.08);
++                    player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
++                }
++            });
++        });
++    }
++
++    /** Two expanding rings in the title's colour, a totem burst and a level banner. */
++    public void titleLevelUp(Player player, String titleId, int level) {
++        safely(() -> {
++            TitleDefinition title = config.get().titles().byId(titleId);
++            if (title == null) return;
++            Color color = color(title.color());
++            player.showTitle(Title.title(
++                    Component.text(title.name() + " Lv." + level, textColor(title.color())).decorate(TextDecoration.BOLD),
++                    Component.text(title.abilityName() + " grows stronger", NamedTextColor.GRAY), TIMES));
++            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 0.8f);
++            player.playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 0.4f, 1.6f);
++            animate(player, 24, (world, base, tick) -> {
++                if (tick == 0) {
++                    world.spawnParticle(Particle.TOTEM_OF_UNDYING, base.clone().add(0, 1.1, 0), 40, 0.3, 0.6, 0.3, 0.35);
++                }
++                ring(world, base.clone().add(0, 0.15, 0), 0.4 + tick * 0.11, color);
++                if (tick >= 8) ring(world, base.clone().add(0, 0.15, 0), 0.4 + (tick - 8) * 0.11, Color.WHITE);
++            });
++        });
++    }
++
++    /** Fireworks-style sparks and a rank banner; QuestService already plays the sound and chat line. */
++    @EventHandler(priority = EventPriority.MONITOR)
++    public void onRankAdvanced(RankAdvancedEvent event) {
++        safely(() -> {
++            Player player = event.getPlayer();
++            ConfigSnapshot snapshot = config.get();
++            if (event.getToIndex() < 0 || event.getToIndex() >= snapshot.ladder().size()) return;
++            RankStage stage = snapshot.ladder().get(event.getToIndex());
++            Color color = color(stage.color());
++            Component headline = event.isMastery()
++                    ? Component.text(snapshot.masteryName(), NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
++                    : Component.text(stage.name(), textColor(stage.color())).decorate(TextDecoration.BOLD);
++            player.showTitle(Title.title(headline,
++                    Component.text(event.isMastery() ? "Mastery achieved" : "Rank advanced", NamedTextColor.GRAY), TIMES));
++            animate(player, 36, (world, base, tick) -> {
++                if (tick % 6 != 0) return;
++                double angle = tick * 0.9;
++                Location burst = base.clone().add(Math.cos(angle) * 1.2, 2.4 + (tick % 12) * 0.05, Math.sin(angle) * 1.2);
++                world.spawnParticle(Particle.FIREWORK, burst, 18, 0.05, 0.05, 0.05, 0.12);
++                world.spawnParticle(Particle.DUST, burst, 10, 0.3, 0.3, 0.3, 0,
++                        new Particle.DustOptions(color, 1.4f));
++                player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_BLAST, 0.6f, 1f + tick / 72f);
++            });
++        });
++    }
++
++    private interface Frame { void draw(World world, Location base, int tick); }
++
++    /** Runs one frame per tick, following the player, for {@code ticks} ticks. */
++    private void animate(Player player, int ticks, Frame frame) {
++        if (!plugin.isEnabled()) return;
++        new BukkitRunnable() {
++            private int tick;
++
++            @Override
++            public void run() {
++                if (tick >= ticks || !player.isOnline()) {
++                    cancel();
++                    return;
++                }
++                try {
++                    frame.draw(player.getWorld(), player.getLocation(), tick++);
++                } catch (RuntimeException e) {
++                    cancel();
++                    plugin.getLogger().log(Level.FINE, "Celebration animation stopped", e);
++                }
++            }
++        }.runTaskTimer(plugin, 0L, 1L);
++    }
++
++    private static void ring(World world, Location centre, double radius, Color color) {
++        Particle.DustOptions dust = new Particle.DustOptions(color, 1f);
++        int points = 14 + (int) (radius * 8);
++        for (int i = 0; i < points; i++) {
++            double angle = 2 * Math.PI * i / points;
++            world.spawnParticle(Particle.DUST, centre.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius),
++                    1, 0, 0, 0, 0, dust);
++        }
++    }
++
++    private void safely(Runnable action) {
++        try {
++            action.run();
++        } catch (RuntimeException e) {
++            plugin.getLogger().log(Level.FINE, "Celebration skipped", e);
++        }
++    }
++
++    private static TextColor textColor(String hex) {
++        TextColor parsed = hex == null ? null : TextColor.fromHexString(hex);
++        return parsed == null ? NamedTextColor.GOLD : parsed;
++    }
++
++    private static Color color(String hex) {
++        TextColor parsed = hex == null ? null : TextColor.fromHexString(hex);
++        return parsed == null ? FALLBACK : Color.fromRGB(parsed.value());
++    }
++}
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/service/TitleService.java b/src/main/java/com/leadsystems/minecraft/ascension/service/TitleService.java
+index 7c1e0ea..a46e8fa 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/service/TitleService.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/service/TitleService.java
+@@ -34,6 +34,7 @@ import java.util.List;
+ import java.util.Map;
+ import java.util.UUID;
+ import java.util.concurrent.atomic.AtomicReference;
++import java.util.function.BiConsumer;
+ import java.util.function.Supplier;
+ 
+ /** Atomic global title ownership and one-equipped-title state. */
+@@ -52,6 +53,7 @@ public final class TitleService implements SessionHook {
+     private final AtomicReference<Map<String, UUID>> owners = new AtomicReference<>(Map.of());
+     private final Map<UUID, String> tagTeams = new HashMap<>();
+     private final TitleAbilityResolver levelResolver;
++    private BiConsumer<Player, TitleDefinition> onEquipped = (player, title) -> {};
+ 
+     public TitleService(SessionManager sessions, StorageExecutor storage, PlayerRepository repo,
+                         StorageHealth health, MainThread main, Supplier<ConfigSnapshot> config,
+@@ -66,6 +68,10 @@ public final class TitleService implements SessionHook {
+         this.levelResolver = new TitleAbilityResolver(config);
+     }
+ 
++    public void setOnEquipped(BiConsumer<Player, TitleDefinition> callback) {
++        onEquipped = callback == null ? (player, title) -> {} : callback;
++    }
++
+     public void refreshOwners() {
+         main.onComplete(storage.submit("titles.owners", repo::titleOwners), (loaded, error) -> {
+             if (error == null && loaded != null) {
+@@ -195,6 +201,7 @@ public final class TitleService implements SessionHook {
+             } else if (Boolean.TRUE.equals(changed)) {
+                 messages.send(player, clear ? "title-unequipped" : "title-equipped",
+                         Messages.ph("title", clear ? "" : title.name()));
++                if (!clear) onEquipped.accept(player, title);
+                 after.run();
+             } else {
+                 messages.send(player, "title-not-owned");
+diff --git a/src/main/java/com/leadsystems/minecraft/ascension/service/TitleXpService.java b/src/main/java/com/leadsystems/minecraft/ascension/service/TitleXpService.java
+index b41d173..8ec4836 100644
+--- a/src/main/java/com/leadsystems/minecraft/ascension/service/TitleXpService.java
++++ b/src/main/java/com/leadsystems/minecraft/ascension/service/TitleXpService.java
+@@ -24,7 +24,11 @@ public final class TitleXpService implements SessionHook {
+ 
+     private final SessionManager sessions;
+     private final Supplier<ConfigSnapshot> config;
++    /** Told which title reached which level, after the session already holds the new XP. */
++    public interface LevelUpListener { void onLevelUp(Player player, String titleId, int level); }
++
+     private BiConsumer<Player, PlayerSession> onLevelChanged = (player, session) -> {};
++    private LevelUpListener onLevelUp = (player, titleId, level) -> {};
+     private final Set<UUID> reconciling = new HashSet<>();
+     private final Set<UUID> pendingReconcile = new HashSet<>();
+ 
+@@ -37,6 +41,10 @@ public final class TitleXpService implements SessionHook {
+         onLevelChanged = callback == null ? (player, session) -> {} : callback;
+     }
+ 
++    public void setOnLevelUp(LevelUpListener listener) {
++        onLevelUp = listener == null ? (player, titleId, level) -> {} : listener;
++    }
++
+     public Source capture(Player player) {
+         if (player == null) return null;
+         GameMode mode = player.getGameMode();
+@@ -118,8 +126,10 @@ public final class TitleXpService implements SessionHook {
+         if (committed) session.addCommittedStat(key, safeReward);
+         else session.addStat(key, safeReward);
+         TitleLevels levels = config.get().titleLevels();
+-        if (player != null && levels.level(before) != levels.level(session.stat(key))) {
++        int after = levels.level(session.stat(key));
++        if (player != null && levels.level(before) != after) {
+             onLevelChanged.accept(player, session);
++            if (after > levels.level(before)) onLevelUp.onLevelUp(player, source.titleId(), after);
+         }
+     }
+ 
+diff --git a/src/test/java/com/leadsystems/minecraft/ascension/service/TitleXpServiceTest.java b/src/test/java/com/leadsystems/minecraft/ascension/service/TitleXpServiceTest.java
+index a1a8cf2..bbad451 100644
+--- a/src/test/java/com/leadsystems/minecraft/ascension/service/TitleXpServiceTest.java
++++ b/src/test/java/com/leadsystems/minecraft/ascension/service/TitleXpServiceTest.java
+@@ -76,6 +76,17 @@ class TitleXpServiceTest {
+         assertEquals(2, changes.get());
+     }
+ 
++    @Test void levelUpNamesTheTitleAndNewLevelOncePerCrossing() {
++        session.addStat("title.xp.stormbringer", 999);
++        session.drain();
++        java.util.List<String> ups = new java.util.ArrayList<>();
++        xp.setOnLevelUp((p, titleId, level) -> ups.add(titleId + ":" + level));
++        xp.record(player, new Fact.BlockMined("STONE"));
++        xp.record(player, new Fact.BlockMined("STONE"));
++        xp.record(player, new Fact.ItemSmelted("IRON_INGOT", 1999));
++        assertEquals(java.util.List.of("stormbringer:2", "stormbringer:3"), ups);
++    }
++
+     @Test void rewardsOnlyAllowedFactsAndBossIsNotAlsoHostileXp() {
+         xp.record(player, new Fact.BlockMined("STONE"));
+         xp.record(player, new Fact.ItemSmelted("IRON_INGOT", 3));

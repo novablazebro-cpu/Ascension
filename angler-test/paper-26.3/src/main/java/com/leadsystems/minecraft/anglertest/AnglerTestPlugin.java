@@ -8,6 +8,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -53,7 +54,7 @@ public final class AnglerTestPlugin extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        waitTicks = Math.max(1, getConfig().getInt("wait-ticks", 60));
+        waitTicks = Math.max(2, getConfig().getInt("wait-ticks", 60));
         relicKey = new NamespacedKey(this, "angler_relic");
         getServer().getPluginManager().registerEvents(this, this);
         getCommand("equip").setExecutor(this::onEquip);
@@ -125,6 +126,15 @@ public final class AnglerTestPlugin extends JavaPlugin implements Listener {
             return;
         }
 
+        boolean deepLureHook = event.getHook().getUniqueId().equals(deepLureHooks.get(id));
+        if (event.getState() == PlayerFishEvent.State.FAILED_ATTEMPT && deepLureHook) {
+            pinDeepLure(event.getHook());
+            getLogger().info("[AnglerTest] missed bite for " + owner.getName() + "; Deep Lure timers re-applied");
+            owner.sendMessage(Component.text("Missed the bite. Deep Lure re-applied.", NamedTextColor.YELLOW));
+            castAt.put(id, now);
+            return;
+        }
+
         if (event.getState() == PlayerFishEvent.State.FISHING) {
             castAt.put(id, now);
             Long until = primedUntil.get(id);
@@ -134,10 +144,11 @@ public final class AnglerTestPlugin extends JavaPlugin implements Listener {
             }
             primedUntil.remove(id);
             deepLureHooks.put(id, event.getHook().getUniqueId());
-            event.getHook().setWaitTime(waitTicks);
-            getLogger().info("[AnglerTest] cast by " + owner.getName() + " with setWaitTime(" + waitTicks + ")"
-                    + " hookState=" + event.getHook().getState());
-            owner.sendMessage(Component.text("Wait set to " + waitTicks + " ticks. Timing this cast.",
+            pinDeepLure(event.getHook());
+            getLogger().info("[AnglerTest] cast by " + owner.getName() + ": total " + waitTicks + " ticks, waitTime="
+                    + event.getHook().getWaitTime() + " lure=" + event.getHook().getMinLureTime()
+                    + "-" + event.getHook().getMaxLureTime() + " hookState=" + event.getHook().getState());
+            owner.sendMessage(Component.text("Deep Lure: bite expected ~" + waitTicks + " ticks after landing. Timing this cast.",
                     NamedTextColor.AQUA));
             return;
         }
@@ -150,6 +161,19 @@ public final class AnglerTestPlugin extends JavaPlugin implements Listener {
         if (event.getState() == PlayerFishEvent.State.BITE) {
             logTiming(owner, "BITE", now);
         }
+    }
+
+    /*
+     * Paper runs two timers: setWaitTime(int) sets only the first (timeUntilLured), then a separate
+     * 20-80 tick lure stage. wait-ticks is the whole time to bite, so it is split across both stages,
+     * and a roof no longer halves the countdown. Same logic as the main plugin's fix.
+     */
+    private void pinDeepLure(FishHook hook) {
+        int total = Math.max(2, waitTicks);
+        int lure = Math.min(20, total / 2);
+        hook.setLureTime(lure, lure);
+        hook.setWaitTime(total - lure);
+        hook.setSkyInfluenced(false);
     }
 
     private void logTiming(Player owner, String phase, long now) {
