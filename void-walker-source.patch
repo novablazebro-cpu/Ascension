@@ -1,0 +1,570 @@
+diff -ruN orig/docs/PLUGIN_REPORT.md src/docs/PLUGIN_REPORT.md
+--- orig/docs/PLUGIN_REPORT.md	2026-10-05 22:06:08.000000000 +0000
++++ src/docs/PLUGIN_REPORT.md	2026-10-27 13:41:36.938702782 +0000
+@@ -23,7 +23,7 @@
+ 
+ ## All 30 titles and all 90 personal power levels
+ 
+-This matrix is derived from titles.yml, config.yml, title-levels.yml and TitleAbilityResolver's canonical Level 1 settings. Values describe bundled defaults. Level 2 and Level 3 deltas each apply to Level 1, not cumulatively. Range/radius values are blocks; duration/recharge values are seconds; damage/healing/max-health values are HP; force is a velocity parameter; potion levels use Minecraft roman-numeral strength; ratios/chances are fractions. Chain targets are additional targets after the first. Void Step charges recharge independently. A listed cooldown of zero means no cooldown, not a missing power.
++This matrix is derived from titles.yml, config.yml, title-levels.yml and TitleAbilityResolver's canonical Level 1 settings. Values describe bundled defaults. Level 2 and Level 3 deltas each apply to Level 1, not cumulatively. Range/radius values are blocks; duration/recharge values are seconds; damage/healing/max-health values are HP; force is a velocity parameter; potion levels use Minecraft roman-numeral strength; ratios/chances are fractions. Chain targets are additional targets after the first. Void Walker has a single teleport charge on a 100-second cooldown and no level upgrades. A listed cooldown of zero means no cooldown, not a missing power.
+ 
+ ### 1. Ascendant — Ascension
+ 
+@@ -90,9 +90,9 @@
+ | 2 | 1000 | 45 seconds | `range` = 24; `chain-range` = 8; `extra-chain-targets` = 3; `chain-damage-health-points` = 8; `chain-multiplier` = 1 |
+ | 3 | 3000 | 45 seconds | `range` = 28; `chain-range` = 8; `extra-chain-targets` = 4; `chain-damage-health-points` = 8; `chain-multiplier` = 1 |
+ 
+-### 5. Voidwalker — Void Step
++### 5. Void Walker — Void Step
+ 
+-ID: `voidwalker`. Activation: owner-bound relic click. Point at a safe landing spot and right-click the Ascension Relic to teleport. Three charges; each returns after 60 seconds.
++ID: `voidwalker`. Activation: owner-bound relic click. Point at a safe landing spot up to 240 blocks away (limited by your render distance) and right-click the Ascension Relic to teleport. Grants Regeneration II for 5 seconds. 100-second cooldown.
+ 
+ Claim quest requirements (all required):
+ 
+@@ -100,9 +100,9 @@
+ 
+ | Personal level | Total title XP | Cooldown | Effective power settings |
+ |---|---:|---|---|
+-| 1 | 0 | 60 seconds | `aim-range` = 32; `charges` = 3; `charge-recharge-seconds` = 60 |
+-| 2 | 1000 | 60 seconds | `aim-range` = 40; `charges` = 4; `charge-recharge-seconds` = 60 |
+-| 3 | 3000 | 60 seconds | `aim-range` = 48; `charges` = 5; `charge-recharge-seconds` = 60 |
++| 1 | 0 | 100 seconds | `aim-range` = 240; `charges` = 1; `charge-recharge-seconds` = 100 |
++| 2 | 1000 | 100 seconds | `aim-range` = 240; `charges` = 1; `charge-recharge-seconds` = 100 |
++| 3 | 3000 | 100 seconds | `aim-range` = 240; `charges` = 1; `charge-recharge-seconds` = 100 |
+ 
+ ### 6. Bloodlord — Vampire
+ 
+@@ -701,6 +701,6 @@
+ 
+ Ownership source audit: both manual claims and automatic awards check the quest requirements before requesting a database mutation. TitleServiceTest includes incomplete/exact-threshold automatic quests, configured New Arrival auto-award, manual claims during testing configuration, ordinary-player testing restrictions, already-owned titles and degraded storage. Explicit administrator testing mode can preview/equip titles without normal ownership, but it does not make an unfinished quest claimable. Production testing unlock should remain disabled. The title_ownership primary key enforces one row per title; repository ownership checks enforce the per-player limit. These source and automated checks supplement, rather than replace, the pending live simultaneous-claim scenario.
+ 
+-Final verification: 363 tests in 37 suites passed with zero failures, errors or skips, using the complete suite plus a rerun of the corrected Colossus ownership fixture. Both supported JARs were built and their metadata/Java bytecode verified. The exact Paper 26.2 release passed the isolated native startup check on October 5, 2026: all 90 title profiles, book identity/glint/restyling, six exchanges, 150 native shop goods and their 2–4-hour schedules, item metadata, migrations, console commands and clean shutdown. See [RELEASE_1.5.0.md](RELEASE_1.5.0.md). The native check does not verify real client controls, other production plugins, multiplayer races or physical iPad rendering.
++Final verification: 363 tests in 37 suites passed with zero failures, errors or skips, using the complete suite plus a rerun of the corrected Colossus ownership fixture. Both supported JARs were built and their metadata/Java bytecode verified. The exact Paper 26.2 release passed the isolated native startup check on October 5, 2026: all 90 title profiles, book identity/glint/restyling, six exchanges, 150 native shop goods and their 2–4-hour schedules, item metadata, migrations, console commands and clean shutdown. See [RELEASE_1.5.0.md](RELEASE_1.5.0.md). The native check does not verify real client controls, other production plugins, multiplayer races or physical iPad rendering.
+ 
+ Live two-player Java/Bedrock gameplay and a physical iPad test were not performed in this documentation review. Before production use, execute QA_CHECKLIST.md, including simultaneous claims, full inventories, protected PvP, every title at all three levels, rank acceptance/renewal, transactions, restart recovery and both client interfaces. Do not label pending checks as passed.
+diff -ruN orig/docs/TITLE_LEVEL_GUIDE.md src/docs/TITLE_LEVEL_GUIDE.md
+--- orig/docs/TITLE_LEVEL_GUIDE.md	2026-10-05 21:38:06.000000000 +0000
++++ src/docs/TITLE_LEVEL_GUIDE.md	2026-10-27 13:41:36.940258329 +0000
+@@ -43,7 +43,7 @@
+ 
+ Unchanged stock upgrade deltas stop at supported limits for a valid custom baseline: cooldowns cannot go below zero, and chances or lifesteal cannot exceed 100%. Level 1 remains unchanged. For example, a custom 10-second Chronomancer cooldown reaches zero at Levels 2 and 3; a 95% Bloodlord lifesteal reaches 100%. Custom deltas that produce unsupported values, invalid baselines, and malformed profiles still prevent reload.
+ 
+-Existing gameplay caps remain: Voidwalker has at most five charges and a 64-block aim range; Tempest Herald has at most 16 additional chain targets; Treasure Whisperer scans at most 24 blocks; Mycelial Drifter has at most eight cloud pulses. Legacy values above these caps keep their previous effective behavior, and the book describes that effective value.
++Existing gameplay caps remain: Void Walker (internal ID `voidwalker`; `void_walker` is also accepted) has at most five charges and a 240-block aim range, further limited per player to their render distance, and gains nothing from title levels; Tempest Herald has at most 16 additional chain targets; Treasure Whisperer scans at most 24 blocks; Mycelial Drifter has at most eight cloud pulses. Legacy values above these caps keep their previous effective behavior, and the book describes that effective value.
+ 
+ Use `/titles reload` after editing. Invalid settings are reported and the previous valid configuration remains active. Shop settings in `shop.yml` continue to require a restart.
+ 
+diff -ruN orig/docs/TITLE_VERIFICATION.md src/docs/TITLE_VERIFICATION.md
+--- orig/docs/TITLE_VERIFICATION.md	2026-10-05 21:38:06.000000000 +0000
++++ src/docs/TITLE_VERIFICATION.md	2026-10-27 13:41:36.939520598 +0000
+@@ -23,7 +23,7 @@
+ | 2 Conqueror | Relic click | Self; hostile mobs and eligible players | 10 | Strength I self; Weakness II, Slowness IV to targets for 8s | 60s | Self buff still casts |
+ | 3 Thunder God (ID: stormbringer) | Relic click | Nearest eligible player | 50 | 26 HP and cosmetic lightning | 35s | No cast |
+ | 4 Tempest Herald | Relic click while aiming | Visible hostile mob or eligible player; then up to two more | 20 primary, 8 chain | 8 HP per strike | 45s | No cast without primary |
+-| 5 Voidwalker | Relic click while aiming | Self, safe landing block | 32 | Teleport; three charges | 60s per charge | No teleport or charge use |
++| 5 Void Walker | Relic click while aiming | Self, safe landing block | 240 (capped by render distance) | Teleport; Regeneration II for 5s | 100s | No teleport, regeneration or cooldown |
+ | 6 Bloodlord | Automatic on every accepted damage hit while below full health | Mobs and eligible players | Combat hit | Heal 20% of final damage, at most 3 HP per hit | None | No heal at full health or on blocked damage |
+ | 7 Chronomancer | Relic click, then second click | Self | Saved position | Restore saved health and position within 3s | 120s | First click saves; expired second click starts new save |
+ | 8 Titan | Relic click | Other living mobs and eligible players | 3 | 26 HP and knockback | 30s | No cast |
+diff -ruN orig/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java src/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java
+--- orig/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java	2026-10-05 21:47:54.000000000 +0000
++++ src/src/main/java/com/leadsystems/minecraft/ascension/ability/TitleAbilityListener.java	2026-10-27 13:41:36.927156933 +0000
+@@ -95,6 +95,12 @@
+     private static final String STORM = "title.stormbringer.heavens_judgment";
+     private static final String REFUSE_DEATH = "title.undying.refuse_death";
+     private static final String VOID_STEP_CHARGE = "title.voidwalker.void_step.charge.";
++    private static final int VOID_STEP_REGENERATION_TICKS = 5 * 20;
++    private static final int VOID_STEP_REGENERATION_AMPLIFIER = 1;
++    /** Non-air blocks a player may stand in that still hurt or trap them. */
++    private static final Set<Material> VOID_STEP_HAZARDS = Set.of(Material.FIRE, Material.SOUL_FIRE,
++            Material.COBWEB, Material.SWEET_BERRY_BUSH, Material.WITHER_ROSE, Material.POWDER_SNOW,
++            Material.NETHER_PORTAL, Material.END_PORTAL, Material.END_GATEWAY);
+     private static final NamespacedKey COLOSSUS_HEALTH = new NamespacedKey("ascension", "colossus_health");
+     private static final Set<Material> CROPS = Set.of(Material.WHEAT, Material.CARROTS, Material.POTATOES,
+             Material.BEETROOTS, Material.NETHER_WART, Material.COCOA);
+@@ -1580,7 +1586,7 @@
+ 
+     private void activateVoidStep(Player owner, PlayerSession session, long now) {
+         TitleDefinition definition = title(session, "voidwalker");
+-        int charges = Math.max(1, Math.min(5, (int) definition.abilitySetting("charges", 3)));
++        int charges = Math.max(1, Math.min(5, (int) definition.abilitySetting("charges", 1)));
+         String charge = nextVoidStepCharge(session.cooldowns(), now, charges);
+         if (charge == null) {
+             String soonest = VOID_STEP_CHARGE + 1;
+@@ -1594,8 +1600,13 @@
+             showCooldown(owner, session, soonest, now);
+             return;
+         }
+-        double range = Math.min(64, Math.max(1,
+-                definition.upgradedAbilitySetting("aim-range", "range", 8, 32)));
++        double range = Math.min(TitleAbilityResolver.VOID_STEP_MAX_RANGE, Math.max(1,
++                definition.upgradedAbilitySetting("aim-range", "range", 8, TitleAbilityResolver.VOID_STEP_MAX_RANGE)));
++        // Never aim past what this player can see: keeps the ray inside chunks the server has sent them.
++        int renderChunks = Math.min(owner.getClientViewDistance(), owner.getViewDistance());
++        if (renderChunks > 0) {
++            range = Math.min(range, renderChunks * 16.0);
++        }
+         Location from = owner.getLocation();
+         Location eye = owner.getEyeLocation();
+         RayTraceResult hit = owner.getWorld().rayTraceBlocks(
+@@ -1611,6 +1622,7 @@
+         }
+         owner.setVelocity(new Vector());
+         owner.setFallDistance(0);
++        grantVoidStepRegeneration(owner);
+         owner.getWorld().spawnParticle(Particle.PORTAL, from.clone().add(0, 1, 0),
+                 25, 0.4, 0.7, 0.4, 0.1);
+         owner.getWorld().spawnParticle(Particle.PORTAL, destination.clone().add(0, 1, 0),
+@@ -1622,8 +1634,20 @@
+         sessions.flushNow(session);
+     }
+ 
++    /** Regeneration II for five seconds, without replacing a stronger or longer effect already running. */
++    private static void grantVoidStepRegeneration(Player owner) {
++        PotionEffect existing = owner.getPotionEffect(PotionEffectType.REGENERATION);
++        if (existing != null && (existing.getAmplifier() > VOID_STEP_REGENERATION_AMPLIFIER
++                || (existing.getAmplifier() == VOID_STEP_REGENERATION_AMPLIFIER
++                && existing.getDuration() >= VOID_STEP_REGENERATION_TICKS))) {
++            return;
++        }
++        owner.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, VOID_STEP_REGENERATION_TICKS,
++                VOID_STEP_REGENERATION_AMPLIFIER, false, true, true));
++    }
++
+     static String nextVoidStepCharge(CooldownBook cooldowns, long now) {
+-        return nextVoidStepCharge(cooldowns, now, 3);
++        return nextVoidStepCharge(cooldowns, now, 1);
+     }
+ 
+     static String nextVoidStepCharge(CooldownBook cooldowns, long now, int charges) {
+@@ -1637,7 +1661,7 @@
+     }
+ 
+     static int availableVoidStepCharges(CooldownBook cooldowns, long now) {
+-        return availableVoidStepCharges(cooldowns, now, 3);
++        return availableVoidStepCharges(cooldowns, now, 1);
+     }
+ 
+     static int availableVoidStepCharges(CooldownBook cooldowns, long now, int charges) {
+@@ -1665,14 +1689,14 @@
+         for (int drop = 0; drop <= 2 && feet == null; drop++) {
+             Block candidate = adjacent.getRelative(0, -drop, 0);
+             if (candidate.getWorld().isChunkLoaded(candidate.getX() >> 4, candidate.getZ() >> 4)
+-                    && safeVoidStepFeet(candidate)) {
++                    && landableVoidStepFeet(candidate)) {
+                 feet = candidate;
+             }
+         }
+         if (feet == null && face != BlockFace.UP) {
+             Block above = target.getRelative(BlockFace.UP);
+             if (above.getWorld().isChunkLoaded(above.getX() >> 4, above.getZ() >> 4)
+-                    && safeVoidStepFeet(above)) {
++                    && landableVoidStepFeet(above)) {
+                 feet = above;
+             }
+         }
+@@ -1685,10 +1709,29 @@
+     }
+ 
+     static boolean safeVoidStepFeet(Block feet) {
+-        Block floor = feet.getRelative(BlockFace.DOWN);
+-        Material floorType = floor.getType();
+         return feet.isEmpty() && feet.getRelative(BlockFace.UP).isEmpty()
+-                && floorType.isSolid() && !floor.isPassable()
++                && safeVoidStepFloor(feet.getRelative(BlockFace.DOWN));
++    }
++
++    /**
++     * Like {@link #safeVoidStepFeet} but also accepts harmless passable blocks (tall grass, flowers, snow
++     * layers) at feet and head height, so aiming at ordinary overworld ground works.
++     */
++    static boolean landableVoidStepFeet(Block feet) {
++        return clearVoidStepSpace(feet) && clearVoidStepSpace(feet.getRelative(BlockFace.UP))
++                && safeVoidStepFloor(feet.getRelative(BlockFace.DOWN));
++    }
++
++    private static boolean clearVoidStepSpace(Block space) {
++        if (space.isEmpty()) {
++            return true;
++        }
++        return space.isPassable() && !space.isLiquid() && !VOID_STEP_HAZARDS.contains(space.getType());
++    }
++
++    private static boolean safeVoidStepFloor(Block floor) {
++        Material floorType = floor.getType();
++        return floorType.isSolid() && !floor.isPassable()
+                 && floor.getBoundingBox().getMaxY() >= floor.getY() + 0.99
+                 && floorType != Material.MAGMA_BLOCK && floorType != Material.CACTUS
+                 && floorType != Material.CAMPFIRE && floorType != Material.SOUL_CAMPFIRE;
+diff -ruN orig/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java src/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java
+--- orig/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java	2026-10-05 21:38:56.000000000 +0000
++++ src/src/main/java/com/leadsystems/minecraft/ascension/config/ConfigLoader.java	2026-10-27 13:41:36.921868587 +0000
+@@ -56,6 +56,10 @@
+             Map.entry("huntsman", "The first attacked hostile mob is marked and takes increased owner damage for 8 seconds."),
+             Map.entry("bulwark", "Absorb the next two hearts of incoming damage; recharge after 35 seconds."),
+             Map.entry("new_arrival", "Killing a hostile mob restores half a heart."));
++    private static final String VOID_STEP_THREE_USES_DESCRIPTION =
++            "Point at a safe landing spot and right-click the title ability stick to teleport. Three uses, then a 100-second recharge.";
++    private static final String VOID_STEP_1_5_0_DESCRIPTION =
++            "Point at a safe landing spot and right-click the Ascension Relic to teleport. Three charges; each returns after 60 seconds.";
+     private static final Map<String, String> OLD_CROUCH_DESCRIPTIONS = Map.of(
+             "titan", "Crouching after a fall creates a damaging knockback wave.");
+ 
+@@ -334,7 +338,9 @@
+             }
+             out.add(new TitleDefinition(id.toLowerCase(Locale.ROOT), number,
+                     id.equals("stormbringer") && value(section, "name", id).equals("Stormbringer")
+-                            ? "Thunder God" : value(section, "name", id), value(section, "color", "#ffffff"),
++                            ? "Thunder God"
++                            : id.equals("voidwalker") && value(section, "name", id).equals("Voidwalker")
++                            ? "Void Walker" : value(section, "name", id), value(section, "color", "#ffffff"),
+                     value(section, "description", ""), requirements,
+                     abilityName, abilityDescription,
+                     Math.max(0, intVal(ability.get("cooldown-seconds"), 0)),
+@@ -427,30 +433,41 @@
+                 // instruction. Do not rewrite custom wording which merely mentions a stick.
+                 String priorStockRelicDescription = replacement == null || !replacement.contains("Ascension Relic") ? null
+                         : replacement.replace("Ascension Relic", "title ability stick");
++                boolean stockVoidText = "voidwalker".equals(id) && (description.equals(OLD_TITLE_DESCRIPTIONS.get(id))
++                        || description.equals(priorStockRelicDescription)
++                        || description.equals(VOID_STEP_THREE_USES_DESCRIPTION)
++                        || description.equals(VOID_STEP_1_5_0_DESCRIPTION));
+                 if (replacement != null && (description.equals(OLD_CROUCH_DESCRIPTIONS.get(id))
+                         || description.equals(OLD_TITLE_DESCRIPTIONS.get(id))
+                         || description.equals(priorStockRelicDescription)
+-                        || ("voidwalker".equals(id) && description.equals(
+-                            "Point at a safe landing spot and right-click the title ability stick to teleport. Three uses, then a 100-second recharge.")))) {
++                        || stockVoidText)) {
+                     updatedAbility.put("description", replacement);
+                     updated++;
+                 }
+                 if ("voidwalker".equals(id)) {
++                    // Stock Void Walker is a single teleport on a 100-second cooldown. Only recognizable stock
++                    // values are upgraded; any other administrator value is left exactly as written.
+                     int oldCooldown = intVal(ability.get("cooldown-seconds"), 0);
+-                    if (oldCooldown == 30 || oldCooldown == 100) {
+-                        updatedAbility.put("cooldown-seconds", 60);
++                    if (oldCooldown == 30 || (stockVoidText && oldCooldown == 60)) {
++                        updatedAbility.put("cooldown-seconds", 100);
+                         updated++;
+                     }
+                     Map<String, Object> settings = new LinkedHashMap<>();
+                     if (ability.get("settings") instanceof Map<?, ?> oldSettings) {
+                         oldSettings.forEach((key, value) -> settings.put(String.valueOf(key), value));
+                     }
+-                    if (!settings.containsKey("aim-range") && doubleVal(settings.get("range"), 8) == 8) {
+-                        settings.put("aim-range", 32.0);
++                    if ((!settings.containsKey("aim-range") && doubleVal(settings.get("range"), 8) == 8)
++                            || (stockVoidText && doubleVal(settings.get("aim-range"), -1) == 32)) {
++                        settings.put("aim-range", 240.0);
++                        updated++;
++                    }
++                    if (stockVoidText && !settings.containsKey("charges")) {
++                        settings.put("charges", 1);
+                         updated++;
+                     }
+-                    if (!settings.containsKey("charge-recharge-seconds")) {
+-                        settings.put("charge-recharge-seconds", 60.0);
++                    if (!settings.containsKey("charge-recharge-seconds")
++                            || (stockVoidText && doubleVal(settings.get("charge-recharge-seconds"), -1) == 60)) {
++                        settings.put("charge-recharge-seconds", 100.0);
+                         updated++;
+                     }
+                     if (doubleVal(settings.get("recharge-seconds"), -1) == 100) {
+diff -ruN orig/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java src/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java
+--- orig/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java	2026-10-04 12:41:32.000000000 +0000
++++ src/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleAbilityResolver.java	2026-10-27 13:39:13.404933366 +0000
+@@ -100,7 +100,7 @@
+             }
+             case "bloodlord" -> result.putIfAbsent("max-heal-health-points", config.settings().vampireMaxHeal());
+             case "tempest_herald" -> canonical(result, title, "chain-damage-health-points", "combat-damage-health-points", 10, 8);
+-            case "voidwalker" -> canonical(result, title, "aim-range", "range", 8, 32);
++            case "voidwalker" -> canonical(result, title, "aim-range", "range", 8, 240);
+             case "titan" -> {
+                 canonical(result, title, "slam-radius", "radius", 6, 3);
+                 canonical(result, title, "slam-damage-health-points", "combat-damage-health-points", 12, 26);
+@@ -144,7 +144,7 @@
+             case "conqueror" -> "radius=10,duration-seconds=8,balanced-weakness-level=2,balanced-slowness-level=4";
+             case "stormbringer" -> "all-targets=0,burst-damage-health-points=26";
+             case "tempest_herald" -> "range=20,chain-range=8,extra-chain-targets=2,chain-damage-health-points=8,chain-multiplier=1";
+-            case "voidwalker" -> "aim-range=32,charges=3,charge-recharge-seconds=60";
++            case "voidwalker" -> "aim-range=240,charges=1,charge-recharge-seconds=100";
+             case "bloodlord" -> "lifesteal-ratio=0.2";
+             case "chronomancer" -> "window-seconds=3";
+             case "titan" -> "slam-radius=3,slam-damage-health-points=26,slam-knockback=1.4";
+@@ -184,6 +184,8 @@
+     }
+ 
+     public static final int MAX_COOLDOWN_SECONDS = 604800;
++    /** Hard ceiling for Void Walker aim range, in blocks (15 chunks). */
++    public static final int VOID_STEP_MAX_RANGE = 240;
+ 
+     /** Shared supported limits. Stock relative upgrades saturate here; custom overflow is invalid. */
+     public record SettingBounds(double minimum, double maximum, boolean integer) {
+@@ -195,7 +197,7 @@
+ 
+     public static SettingBounds settingBounds(String id, String key) {
+         if (id.equals("voidwalker") && key.equals("charges")) return new SettingBounds(1, 5, true);
+-        if (id.equals("voidwalker") && key.equals("aim-range")) return new SettingBounds(1, 64, false);
++        if (id.equals("voidwalker") && key.equals("aim-range")) return new SettingBounds(1, VOID_STEP_MAX_RANGE, false);
+         if (id.equals("tempest_herald") && key.equals("extra-chain-targets")) return new SettingBounds(0, 16, true);
+         if (id.equals("treasure_whisperer") && key.equals("range")) return new SettingBounds(1, 24, true);
+         if (id.equals("mycelial_drifter") && key.equals("ticks")) return new SettingBounds(1, 8, true);
+@@ -224,7 +226,9 @@
+             case "conqueror" -> "Gain Strength; inflict Weakness " + v.apply("balanced-weakness-level") + " and Slowness " + v.apply("balanced-slowness-level") + " within " + v.apply("radius") + " blocks for " + v.apply("duration-seconds") + " seconds.";
+             case "stormbringer" -> "Strike " + (s.get("all-targets") >= 1 ? "all eligible players" : "the closest eligible player") + " within " + v.apply("range") + " blocks for " + v.apply("burst-damage-health-points") + " raw damage. Armor and protection apply.";
+             case "tempest_herald" -> "Aim within " + v.apply("range") + " blocks; lightning deals " + v.apply("chain-damage-health-points") + " damage and chains to " + v.apply("extra-chain-targets") + " extra targets within " + v.apply("chain-range") + " blocks.";
+-            case "voidwalker" -> "Teleport to a safe aimed spot within " + v.apply("aim-range") + " blocks. " + v.apply("charges") + " charges, each recharging in " + v.apply("charge-recharge-seconds") + " seconds.";
++            case "voidwalker" -> "Teleport to a safe aimed spot within " + v.apply("aim-range") + " blocks (limited by your render distance). "
++                    + (s.getOrDefault("charges", 1.0) == 1 ? "Recharges in " : v.apply("charges") + " charges, each recharging in ")
++                    + v.apply("charge-recharge-seconds") + " seconds. Grants Regeneration II for 5 seconds.";
+             case "bloodlord" -> "Every valid damaging hit heals " + format(s.get("lifesteal-ratio") * 100) + "% of final damage, up to " + v.apply("max-heal-health-points") + " HP per hit.";
+             case "chronomancer" -> "Save your position and health; reactivate within " + v.apply("window-seconds") + " seconds to rewind.";
+             case "titan" -> "Slam targets within " + v.apply("slam-radius") + " blocks for " + v.apply("slam-damage-health-points") + " raw damage and knockback. Armor and protection apply.";
+diff -ruN orig/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleCatalog.java src/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleCatalog.java
+--- orig/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleCatalog.java	2026-10-04 11:55:54.000000000 +0000
++++ src/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleCatalog.java	2026-10-27 13:39:13.405226121 +0000
+@@ -54,6 +54,7 @@
+         }
+         String normalized = r.toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
+         if (normalized.equals("thunder_god") || normalized.equals("thundergod")) normalized = "stormbringer";
++        if (normalized.equals("void_walker")) normalized = "voidwalker";
+         return byId.get(normalized);
+     }
+ 
+diff -ruN orig/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleLevels.java src/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleLevels.java
+--- orig/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleLevels.java	2026-10-04 12:30:10.000000000 +0000
++++ src/src/main/java/com/leadsystems/minecraft/ascension/domain/title/TitleLevels.java	2026-10-27 13:39:13.401677756 +0000
+@@ -74,7 +74,7 @@
+         profile(p, "conqueror", 0, 0, "radius", 2, 4, "duration-seconds", 2, 4);
+         profile(p, "stormbringer", 0, 0, "range", 10, 10, "all-targets", 0, 1);
+         profile(p, "tempest_herald", 0, 0, "range", 4, 8, "extra-chain-targets", 1, 2);
+-        profile(p, "voidwalker", 0, 0, "aim-range", 8, 16, "charges", 1, 2);
++        profile(p, "voidwalker", 0, 0, "aim-range", 0, 0, "charges", 0, 0);
+         profile(p, "bloodlord", 0, 0, "lifesteal-ratio", .05, .10, "max-heal-health-points", .5, 1);
+         profile(p, "chronomancer", -10, -20, "window-seconds", 1, 2);
+         profile(p, "titan", 0, 0, "slam-radius", 1, 2);
+diff -ruN orig/src/main/resources/title-levels.yml src/src/main/resources/title-levels.yml
+--- orig/src/main/resources/title-levels.yml	2026-10-04 11:53:22.000000000 +0000
++++ src/src/main/resources/title-levels.yml	2026-10-27 13:41:36.930063797 +0000
+@@ -58,13 +58,13 @@
+     2:
+       cooldown-delta-seconds: 0
+       settings-deltas:
+-        aim-range: 8
+-        charges: 1
++        aim-range: 0
++        charges: 0
+     3:
+       cooldown-delta-seconds: 0
+       settings-deltas:
+-        aim-range: 16
+-        charges: 2
++        aim-range: 0
++        charges: 0
+   bloodlord:
+     2:
+       cooldown-delta-seconds: 0
+diff -ruN orig/src/main/resources/titles.yml src/src/main/resources/titles.yml
+--- orig/src/main/resources/titles.yml	2026-10-04 11:56:08.000000000 +0000
++++ src/src/main/resources/titles.yml	2026-10-27 13:41:36.931022419 +0000
+@@ -124,7 +124,7 @@
+ 
+   - id: voidwalker
+     number: 5
+-    name: Voidwalker
++    name: Void Walker
+     color: "#8d74d6"
+     description: "A traveler who has conquered the End."
+     requirements:
+@@ -134,9 +134,9 @@
+         label: "Loot five End City containers"
+     ability:
+       name: Void Step
+-      description: "Point at a safe landing spot and right-click the Ascension Relic to teleport. Three charges; each returns after 60 seconds."
+-      cooldown-seconds: 60
+-      settings: { aim-range: 32.0, charge-recharge-seconds: 60.0 }
++      description: "Point at a safe landing spot up to 240 blocks away (limited by your render distance) and right-click the Ascension Relic to teleport. Grants Regeneration II for 5 seconds. 100-second cooldown."
++      cooldown-seconds: 100
++      settings: { aim-range: 240.0, charges: 1, charge-recharge-seconds: 100.0 }
+     auto-award: false
+ 
+   - id: bloodlord
+diff -ruN orig/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java src/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java
+--- orig/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java	2026-10-05 21:37:38.000000000 +0000
++++ src/src/test/java/com/leadsystems/minecraft/ascension/config/ConfigLoaderTest.java	2026-10-27 13:41:36.918555121 +0000
+@@ -350,14 +350,15 @@
+         ability.put("settings", Map.of("range", 8.0));
+         configured.set("titles", rows);
+ 
+-        assertEquals(4, ConfigLoader.mergeLegacyTitleDescriptions(configured, bundled));
++        assertEquals(5, ConfigLoader.mergeLegacyTitleDescriptions(configured, bundled));
+         Map<?, ?> updated = (Map<?, ?>) configured.getMapList("titles").get(4).get("ability");
+-        assertEquals(60, updated.get("cooldown-seconds"));
++        assertEquals(100, updated.get("cooldown-seconds"));
+         assertEquals(((Map<?, ?>) bundled.getMapList("titles").get(4).get("ability")).get("description"),
+                 updated.get("description"));
+         Map<?, ?> settings = (Map<?, ?>) updated.get("settings");
+-        assertEquals(32.0, settings.get("aim-range"));
+-        assertEquals(60.0, settings.get("charge-recharge-seconds"));
++        assertEquals(240.0, settings.get("aim-range"));
++        assertEquals(1, settings.get("charges"));
++        assertEquals(100.0, settings.get("charge-recharge-seconds"));
+     }
+ 
+     @Test
+@@ -372,17 +373,54 @@
+         ability.put("settings", Map.of("aim-range", 32.0, "recharge-seconds", 100.0));
+         configured.set("titles", rows);
+ 
+-        assertEquals(3, ConfigLoader.mergeLegacyTitleDescriptions(configured, bundled));
++        assertEquals(4, ConfigLoader.mergeLegacyTitleDescriptions(configured, bundled));
+         Map<?, ?> updated = (Map<?, ?>) configured.getMapList("titles").get(4).get("ability");
+-        assertEquals(60, updated.get("cooldown-seconds"));
++        assertEquals(100, updated.get("cooldown-seconds"));
+         assertEquals(((Map<?, ?>) bundled.getMapList("titles").get(4).get("ability")).get("description"),
+                 updated.get("description"));
+         Map<?, ?> settings = (Map<?, ?>) updated.get("settings");
+-        assertEquals(60.0, settings.get("charge-recharge-seconds"));
++        assertEquals(240.0, settings.get("aim-range"));
++        assertEquals(100.0, settings.get("charge-recharge-seconds"));
+         assertFalse(settings.containsKey("recharge-seconds"));
+     }
+ 
+     @Test
++    void releaseOneFiveVoidwalkerStockConfigUpgradesToSingleLongRangeTeleport() {
++        YamlConfiguration configured = defaults().get("titles.yml");
++        YamlConfiguration bundled = defaults().get("titles.yml");
++        java.util.List<Map<?, ?>> rows = configured.getMapList("titles");
++        @SuppressWarnings("unchecked")
++        Map<String, Object> ability = (Map<String, Object>) rows.get(4).get("ability");
++        ability.put("description", "Point at a safe landing spot and right-click the Ascension Relic to teleport. Three charges; each returns after 60 seconds.");
++        ability.put("cooldown-seconds", 60);
++        ability.put("settings", Map.of("aim-range", 32.0, "charge-recharge-seconds", 60.0));
++        configured.set("titles", rows);
++
++        assertEquals(5, ConfigLoader.mergeLegacyTitleDescriptions(configured, bundled));
++        Map<?, ?> updated = (Map<?, ?>) configured.getMapList("titles").get(4).get("ability");
++        assertEquals(100, updated.get("cooldown-seconds"));
++        Map<?, ?> settings = (Map<?, ?>) updated.get("settings");
++        assertEquals(240.0, settings.get("aim-range"));
++        assertEquals(1, settings.get("charges"));
++        assertEquals(100.0, settings.get("charge-recharge-seconds"));
++    }
++
++    @Test
++    void customVoidWalkerCooldownIsNeverRewritten() {
++        YamlConfiguration configured = defaults().get("titles.yml");
++        YamlConfiguration bundled = defaults().get("titles.yml");
++        java.util.List<Map<?, ?>> rows = configured.getMapList("titles");
++        @SuppressWarnings("unchecked")
++        Map<String, Object> ability = (Map<String, Object>) rows.get(4).get("ability");
++        ability.put("cooldown-seconds", 45);
++        configured.set("titles", rows);
++
++        assertEquals(0, ConfigLoader.mergeLegacyTitleDescriptions(configured, bundled));
++        Map<?, ?> updated = (Map<?, ?>) configured.getMapList("titles").get(4).get("ability");
++        assertEquals(45, updated.get("cooldown-seconds"));
++    }
++
++    @Test
+     void revisedLowerTitleDescriptionsUpgradeInMemory() {
+         YamlConfiguration configured = defaults().get("titles.yml");
+         YamlConfiguration bundled = defaults().get("titles.yml");
+diff -ruN orig/src/test/java/com/leadsystems/minecraft/ascension/config/TitleLevelsConfigTest.java src/src/test/java/com/leadsystems/minecraft/ascension/config/TitleLevelsConfigTest.java
+--- orig/src/test/java/com/leadsystems/minecraft/ascension/config/TitleLevelsConfigTest.java	2026-10-04 12:41:42.000000000 +0000
++++ src/src/test/java/com/leadsystems/minecraft/ascension/config/TitleLevelsConfigTest.java	2026-10-27 13:40:44.740072593 +0000
+@@ -18,22 +18,22 @@
+     @Test
+     void legacyCustomSettingsResolveAtExistingGameplayCapsForEveryLevel() {
+         var files = ConfigLoaderTest.defaults();
+-        setSettings(files.get("titles.yml"), "voidwalker", Map.of("aim-range", 100.0, "charges", 10.8));
++        setSettings(files.get("titles.yml"), "voidwalker", Map.of("aim-range", 300.0, "charges", 10.8));
+         setSettings(files.get("titles.yml"), "tempest_herald", Map.of("extra-chain-targets", 20.5));
+         setSettings(files.get("titles.yml"), "treasure_whisperer", Map.of("range", 40.5));
+         setSettings(files.get("titles.yml"), "mycelial_drifter", Map.of("ticks", 20.5));
+         var loaded = ConfigLoaderTest.load(files);
+         assertTrue(loaded.ok(), () -> loaded.errors().toString());
+         for (int level = 1; level <= 3; level++) {
+-            assertEquals(64, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", level).abilitySetting("aim-range", 0));
++            assertEquals(240, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", level).abilitySetting("aim-range", 0));
+             assertEquals(5, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", level).abilitySetting("charges", 0));
+             assertEquals(16, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "tempest_herald", level).abilitySetting("extra-chain-targets", 0));
+             assertEquals(24, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "treasure_whisperer", level).abilitySetting("range", 0));
+             assertEquals(8, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "mycelial_drifter", level).abilitySetting("ticks", 0));
+         }
+-        assertEquals(100, loaded.snapshot().titles().byId("voidwalker").abilitySetting("aim-range", 0));
++        assertEquals(300, loaded.snapshot().titles().byId("voidwalker").abilitySetting("aim-range", 0));
+         var resolver = new TitleAbilityResolver(loaded::snapshot);
+-        assertTrue(resolver.levelSummary(null, "voidwalker").contains("64 blocks. 5 charges"));
++        assertTrue(resolver.levelSummary(null, "voidwalker").contains("240 blocks (limited by your render distance). 5 charges"));
+         assertTrue(resolver.levelSummary(null, "tempest_herald").contains("16 extra targets"));
+         assertTrue(resolver.levelSummary(null, "treasure_whisperer").contains("24 blocks"));
+         assertTrue(resolver.levelSummary(null, "mycelial_drifter").contains("8 pulses"));
+@@ -49,9 +49,9 @@
+         var loaded = ConfigLoaderTest.load(files);
+         assertTrue(loaded.ok(), () -> loaded.errors().toString());
+         assertEquals(1, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", 1).abilitySetting("aim-range", 0));
+-        assertEquals(17, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", 3).abilitySetting("aim-range", 0));
++        assertEquals(1, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", 3).abilitySetting("aim-range", 0));
+         assertEquals(3, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", 1).abilitySetting("charges", 0));
+-        assertEquals(5, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", 3).abilitySetting("charges", 0));
++        assertEquals(3, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "voidwalker", 3).abilitySetting("charges", 0));
+         assertEquals(0, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "tempest_herald", 1).abilitySetting("extra-chain-targets", -1));
+         assertEquals(2, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "tempest_herald", 3).abilitySetting("extra-chain-targets", -1));
+         assertEquals(17, TitleAbilityResolver.resolveLevel(loaded.snapshot(), "treasure_whisperer", 1).abilitySetting("range", 0));
+@@ -63,7 +63,7 @@
+     @Test
+     void explicitCustomUpgradesCannotDescribeValuesBeyondGameplayCaps() {
+         String[][] overrides = {
+-                {"voidwalker", "charges", "3"}, {"voidwalker", "aim-range", "33"},
++                {"voidwalker", "charges", "5"}, {"voidwalker", "aim-range", "33"},
+                 {"tempest_herald", "extra-chain-targets", "15"}, {"treasure_whisperer", "range", "9"},
+                 {"mycelial_drifter", "ticks", "5"}};
+         for (String[] override : overrides) {
+@@ -176,14 +176,14 @@
+         assertEquals(1, resolver.level(player, "voidwalker"));
+         player.addStat(TitleAbilityResolver.xpKey("voidwalker"), 1);
+         assertEquals(2, resolver.level(player, "voidwalker"));
+-        assertEquals(40, resolver.resolved(player, "voidwalker").abilitySetting("aim-range", 0));
+-        assertEquals(4, resolver.resolved(player, "voidwalker").abilitySetting("charges", 0));
++        assertEquals(240, resolver.resolved(player, "voidwalker").abilitySetting("aim-range", 0));
++        assertEquals(1, resolver.resolved(player, "voidwalker").abilitySetting("charges", 0));
+         assertEquals(1, resolver.level(player, "ascendant"));
+         assertEquals(3000, resolver.nextLevelXp(player, "voidwalker"));
+         player.addStat(TitleAbilityResolver.xpKey("voidwalker"), 2000);
+         assertEquals(3, resolver.level(player, "voidwalker"));
+-        assertEquals(48, resolver.resolved(player, "voidwalker").abilitySetting("aim-range", 0));
+-        assertEquals(5, resolver.resolved(player, "voidwalker").abilitySetting("charges", 0));
++        assertEquals(240, resolver.resolved(player, "voidwalker").abilitySetting("aim-range", 0));
++        assertEquals(1, resolver.resolved(player, "voidwalker").abilitySetting("charges", 0));
+         assertEquals(0, resolver.nextLevelXp(player, "voidwalker"));
+         assertEquals("Maximum level reached.", resolver.nextLevelSummary(player, "voidwalker"));
+         assertTrue(player.drain().statDeltas().containsKey("title.xp.voidwalker"));
+@@ -286,6 +286,25 @@
+         }
+     }
+ 
++    @Test
++    void voidWalkerAliasesPreserveStableInternalIdAndDefaults() {
++        var snapshot = ConfigLoaderTest.load(ConfigLoaderTest.defaults()).snapshot();
++        for (String alias : new String[]{"voidwalker", "Void Walker", "void_walker", "#5"}) {
++            assertEquals("voidwalker", snapshot.titles().resolve(alias).id());
++            assertEquals("Void Walker", snapshot.titles().resolve(alias).name());
++        }
++        var voidWalker = snapshot.titles().byId("voidwalker");
++        assertEquals(240, voidWalker.abilitySetting("aim-range", 0));
++        assertEquals(1, voidWalker.abilitySetting("charges", 0));
++        assertEquals(100, voidWalker.abilitySetting("charge-recharge-seconds", 0));
++        assertEquals(100, voidWalker.abilityCooldownSeconds());
++        for (int level = 1; level <= 3; level++) {
++            var resolved = TitleAbilityResolver.resolveLevel(snapshot, "voidwalker", level);
++            assertEquals(240, resolved.abilitySetting("aim-range", 0));
++            assertEquals(1, resolved.abilitySetting("charges", 0));
++        }
++    }
++
+     @SuppressWarnings("unchecked")
+     private static void setSettings(YamlConfiguration yaml, String id, Map<String, Double> settings) {
+         var titles = yaml.getMapList("titles");

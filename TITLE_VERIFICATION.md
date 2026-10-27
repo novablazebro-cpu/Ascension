@@ -23,7 +23,7 @@ in a PvP-enabled world who is not on the owner's scoreboard team.
 | 2 Conqueror | Relic click | Self; hostile mobs and eligible players | 10 | Strength I self; Weakness II, Slowness IV to targets for 8s | 60s | Self buff still casts |
 | 3 Thunder God (ID: stormbringer) | Relic click | Nearest eligible player | 50 | 26 HP and cosmetic lightning | 35s | No cast |
 | 4 Tempest Herald | Relic click while aiming | Visible hostile mob or eligible player; then up to two more | 20 primary, 8 chain | 8 HP per strike | 45s | No cast without primary |
-| 5 Voidwalker | Relic click while aiming | Self, safe landing block | 32 | Teleport; three charges | 60s per charge | No teleport or charge use |
+| 5 Void Walker | Relic click while aiming | Self, safe landing block | 240 (capped by render distance) | Teleport; Regeneration II for 5s | 100s | No teleport, regeneration or cooldown |
 | 6 Bloodlord | Automatic on every accepted damage hit while below full health | Mobs and eligible players | Combat hit | Heal 20% of final damage, at most 3 HP per hit | None | No heal at full health or on blocked damage |
 | 7 Chronomancer | Relic click, then second click | Self | Saved position | Restore saved health and position within 3s | 120s | First click saves; expired second click starts new save |
 | 8 Titan | Relic click | Other living mobs and eligible players | 3 | 26 HP and knockback | 30s | No cast |

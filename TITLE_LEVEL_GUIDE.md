@@ -43,7 +43,7 @@ Edit `plugins/Ascension/title-levels.yml` to tune the two total-XP thresholds, e
 
 Unchanged stock upgrade deltas stop at supported limits for a valid custom baseline: cooldowns cannot go below zero, and chances or lifesteal cannot exceed 100%. Level 1 remains unchanged. For example, a custom 10-second Chronomancer cooldown reaches zero at Levels 2 and 3; a 95% Bloodlord lifesteal reaches 100%. Custom deltas that produce unsupported values, invalid baselines, and malformed profiles still prevent reload.
 
-Existing gameplay caps remain: Voidwalker has at most five charges and a 64-block aim range; Tempest Herald has at most 16 additional chain targets; Treasure Whisperer scans at most 24 blocks; Mycelial Drifter has at most eight cloud pulses. Legacy values above these caps keep their previous effective behavior, and the book describes that effective value.
+Existing gameplay caps remain: Void Walker (internal ID `voidwalker`; `void_walker` is also accepted) has at most five charges and a 240-block aim range, further limited per player to their render distance, and gains nothing from title levels; Tempest Herald has at most 16 additional chain targets; Treasure Whisperer scans at most 24 blocks; Mycelial Drifter has at most eight cloud pulses. Legacy values above these caps keep their previous effective behavior, and the book describes that effective value.
 
 Use `/titles reload` after editing. Invalid settings are reported and the previous valid configuration remains active. Shop settings in `shop.yml` continue to require a restart.
 

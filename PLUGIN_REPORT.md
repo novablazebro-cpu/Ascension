@@ -23,7 +23,7 @@ Manual titles use one protected owner-bound Ascension Relic. Automatic titles us
 
 ## All 30 titles and all 90 personal power levels
 
-This matrix is derived from titles.yml, config.yml, title-levels.yml and TitleAbilityResolver's canonical Level 1 settings. Values describe bundled defaults. Level 2 and Level 3 deltas each apply to Level 1, not cumulatively. Range/radius values are blocks; duration/recharge values are seconds; damage/healing/max-health values are HP; force is a velocity parameter; potion levels use Minecraft roman-numeral strength; ratios/chances are fractions. Chain targets are additional targets after the first. Void Step charges recharge independently. A listed cooldown of zero means no cooldown, not a missing power.
+This matrix is derived from titles.yml, config.yml, title-levels.yml and TitleAbilityResolver's canonical Level 1 settings. Values describe bundled defaults. Level 2 and Level 3 deltas each apply to Level 1, not cumulatively. Range/radius values are blocks; duration/recharge values are seconds; damage/healing/max-health values are HP; force is a velocity parameter; potion levels use Minecraft roman-numeral strength; ratios/chances are fractions. Chain targets are additional targets after the first. Void Walker has a single teleport charge on a 100-second cooldown and no level upgrades. A listed cooldown of zero means no cooldown, not a missing power.
 
 ### 1. Ascendant — Ascension
 
@@ -90,9 +90,9 @@ Claim quest requirements (all required):
 | 2 | 1000 | 45 seconds | `range` = 24; `chain-range` = 8; `extra-chain-targets` = 3; `chain-damage-health-points` = 8; `chain-multiplier` = 1 |
 | 3 | 3000 | 45 seconds | `range` = 28; `chain-range` = 8; `extra-chain-targets` = 4; `chain-damage-health-points` = 8; `chain-multiplier` = 1 |
 
-### 5. Voidwalker — Void Step
+### 5. Void Walker — Void Step
 
-ID: `voidwalker`. Activation: owner-bound relic click. Point at a safe landing spot and right-click the Ascension Relic to teleport. Three charges; each returns after 60 seconds.
+ID: `voidwalker`. Activation: owner-bound relic click. Point at a safe landing spot up to 240 blocks away (limited by your render distance) and right-click the Ascension Relic to teleport. Grants Regeneration II for 5 seconds. 100-second cooldown.
 
 Claim quest requirements (all required):
 
@@ -100,9 +100,9 @@ Claim quest requirements (all required):
 
 | Personal level | Total title XP | Cooldown | Effective power settings |
 |---|---:|---|---|
-| 1 | 0 | 60 seconds | `aim-range` = 32; `charges` = 3; `charge-recharge-seconds` = 60 |
-| 2 | 1000 | 60 seconds | `aim-range` = 40; `charges` = 4; `charge-recharge-seconds` = 60 |
-| 3 | 3000 | 60 seconds | `aim-range` = 48; `charges` = 5; `charge-recharge-seconds` = 60 |
+| 1 | 0 | 100 seconds | `aim-range` = 240; `charges` = 1; `charge-recharge-seconds` = 100 |
+| 2 | 1000 | 100 seconds | `aim-range` = 240; `charges` = 1; `charge-recharge-seconds` = 100 |
+| 3 | 3000 | 100 seconds | `aim-range` = 240; `charges` = 1; `charge-recharge-seconds` = 100 |
 
 ### 6. Bloodlord — Vampire
 
